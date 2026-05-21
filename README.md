@@ -23,4 +23,4 @@ The public pixel token is passed via the `X-Palitra-Pixel-Token` header or the `
 
 ## License
 
-Proprietary. All rights reserved.
+[MIT](./LICENSE) © Palitra
