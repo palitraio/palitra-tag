@@ -14,7 +14,7 @@
     "dev": "node build.mjs --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "oxlint src tests build.mjs",
+    "lint": "oxlint -c .oxlintrc.json src tests build.mjs",
     "format": "oxfmt src tests build.mjs",
     "typecheck": "tsc --noEmit",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run build"
