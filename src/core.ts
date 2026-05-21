@@ -19,12 +19,14 @@ export function createDispatcher(): (args: Command) => void {
   let state: State | null = null;
   let initializing = false;
   let buffered: Command[] = [];
-  let uninstallPageView: (() => void) | null = null;
 
   function handle(args: Command): void {
     const name = args[0];
     if (name === "init") {
       if (state !== null || initializing) {
+        if (state?.options.debug) {
+          console.warn("[palitra] init called more than once — ignoring");
+        }
         return;
       }
       const token = args[1];
@@ -52,7 +54,7 @@ export function createDispatcher(): (args: Command) => void {
     ensureSession(document.referrer);
 
     if (options.autoPageView) {
-      uninstallPageView = installPageViewHooks(() => {
+      installPageViewHooks(() => {
         if (state) runCommand(["event", "page_view"], state);
       });
       runCommand(["event", "page_view"], state);
@@ -112,10 +114,6 @@ export function createDispatcher(): (args: Command) => void {
     };
     return current.transport.send(event);
   }
-
-  (handle as unknown as { _uninstall?: () => void })._uninstall = () => {
-    uninstallPageView?.();
-  };
 
   return handle;
 }

@@ -7,17 +7,16 @@ interface TransportConfig {
   debug: boolean;
 }
 
-interface PendingRetry {
+interface PendingEntry {
   body: string;
-  attempt: number;
-  timer: ReturnType<typeof setTimeout>;
+  timer: ReturnType<typeof setTimeout> | null;
 }
 
 const MAX_ATTEMPTS = 5;
 const MAX_BACKOFF_MS = 30_000;
 
 export class Transport {
-  private readonly pending = new Set<PendingRetry>();
+  private readonly pending = new Set<PendingEntry>();
 
   constructor(private readonly config: TransportConfig) {}
 
@@ -28,20 +27,26 @@ export class Transport {
       console.warn(`[palitra] dropped oversize event "${event.event}":`, size);
       return;
     }
-    await this.attempt(body, 1);
+    const entry: PendingEntry = { body, timer: null };
+    this.pending.add(entry);
+    try {
+      await this.attempt(entry, 1);
+    } finally {
+      this.pending.delete(entry);
+    }
   }
 
   flushOnUnload(): void {
     if (typeof navigator.sendBeacon !== "function") return;
     const url = `${this.config.endpoint}/collect?token=${this.config.token}`;
-    for (const pending of this.pending) {
-      clearTimeout(pending.timer);
-      navigator.sendBeacon(url, new Blob([pending.body], { type: "application/json" }));
+    for (const entry of this.pending) {
+      if (entry.timer !== null) clearTimeout(entry.timer);
+      navigator.sendBeacon(url, new Blob([entry.body], { type: "application/json" }));
     }
     this.pending.clear();
   }
 
-  private async attempt(body: string, attempt: number): Promise<void> {
+  private async attempt(entry: PendingEntry, attempt: number): Promise<void> {
     let response: Response | undefined;
     try {
       response = await fetch(`${this.config.endpoint}/collect`, {
@@ -51,7 +56,7 @@ export class Transport {
           "X-Palitra-Pixel-Token": this.config.token,
           "Content-Type": "application/json",
         },
-        body,
+        body: entry.body,
       });
     } catch {
       // Network error — fall through to retry logic.
@@ -75,15 +80,10 @@ export class Transport {
 
     const delay = computeDelay(response, attempt);
     await new Promise<void>((resolve) => {
-      const entry: PendingRetry = {
-        body,
-        attempt,
-        timer: setTimeout(() => {
-          this.pending.delete(entry);
-          this.attempt(body, attempt + 1).then(resolve, resolve);
-        }, delay),
-      };
-      this.pending.add(entry);
+      entry.timer = setTimeout(() => {
+        entry.timer = null;
+        this.attempt(entry, attempt + 1).then(resolve, resolve);
+      }, delay);
     });
   }
 }

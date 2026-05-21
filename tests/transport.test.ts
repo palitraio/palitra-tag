@@ -94,12 +94,27 @@ describe("Transport.send", () => {
 
   it("flushes pending retries via sendBeacon on pagehide", async () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 500 }));
-    transport.send(event({ event: "custom" }));
+    void transport.send(event({ event: "custom" }));
     await vi.advanceTimersByTimeAsync(0);
     transport.flushOnUnload();
     expect(beaconMock).toHaveBeenCalledWith(
       `${ENDPOINT}/collect?token=${TOKEN}`,
       expect.any(Blob),
     );
+  });
+
+  it("flushes in-flight first-attempt requests via sendBeacon on unload", async () => {
+    // fetch never resolves — simulates a request still in flight when the user
+    // closes the tab. flushOnUnload must beacon the payload even though no
+    // retry has been scheduled yet.
+    fetchMock.mockReturnValueOnce(new Promise<Response>(() => {}));
+    void transport.send(event({ event: "in_flight" }));
+    await vi.advanceTimersByTimeAsync(0);
+    transport.flushOnUnload();
+    expect(beaconMock).toHaveBeenCalledTimes(1);
+    const blob = beaconMock.mock.calls[0]?.[1] as Blob;
+    expect(blob).toBeInstanceOf(Blob);
+    const body = await blob.text();
+    expect(JSON.parse(body)).toMatchObject({ event: "in_flight" });
   });
 });

@@ -82,9 +82,10 @@ describe("identity", () => {
     expect(collectLinkedIds(emptyConfig).length).toBe(32);
   });
 
-  it("getLink persistence survives reload (localStorage)", () => {
+  it("addLink persists to localStorage under LINKS_KEY", () => {
     addLink("ym_uid", "persisted");
-    localStorage.getItem(LINKS_KEY);
-    expect(collectLinkedIds(emptyConfig)).toEqual([{ id_type: "ym_uid", id_value: "persisted" }]);
+    const raw = localStorage.getItem(LINKS_KEY);
+    expect(raw).not.toBeNull();
+    expect(JSON.parse(raw ?? "null")).toEqual({ ym_uid: "persisted" });
   });
 });
