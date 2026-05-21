@@ -10,14 +10,16 @@
   "rules": {
     "no-console": "off",
     "no-await-in-loop": "off",
-    "unicorn/no-document-cookie": "off"
+    "unicorn/no-document-cookie": "off",
+    "unicorn/consistent-function-scoping": "off"
   },
   "overrides": [
     {
       "files": ["tests/**/*.ts"],
       "rules": {
         "no-empty-pattern": "off",
-        "no-await-in-loop": "off"
+        "no-await-in-loop": "off",
+        "unicorn/consistent-function-scoping": "off"
       }
     }
   ]
