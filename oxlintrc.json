@@ -14,7 +14,8 @@
     {
       "files": ["tests/**/*.ts"],
       "rules": {
-        "no-empty-pattern": "off"
+        "no-empty-pattern": "off",
+        "unicorn/no-document-cookie": "off"
       }
     }
   ]
