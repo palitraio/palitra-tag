@@ -10,7 +10,6 @@ type Command = unknown[];
 
 interface State {
   options: ResolvedOptions;
-  token: string;
   transport: Transport;
   config: PixelConfig;
 }
@@ -49,7 +48,7 @@ export function createDispatcher(): (args: Command) => void {
     const options: ResolvedOptions = { ...DEFAULT_OPTIONS, ...opts };
     const config = await fetchConfig(options.endpoint, token);
     const transport = new Transport({ endpoint: options.endpoint, token, debug: options.debug });
-    state = { options, token, transport, config };
+    state = { options, transport, config };
 
     ensureSession(document.referrer);
 

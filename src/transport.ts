@@ -14,6 +14,9 @@ interface PendingEntry {
 
 const MAX_ATTEMPTS = 5;
 const MAX_BACKOFF_MS = 30_000;
+const MAX_PENDING = 256;
+
+const encoder = new TextEncoder();
 
 export class Transport {
   private readonly pending = new Set<PendingEntry>();
@@ -22,9 +25,15 @@ export class Transport {
 
   async send(event: PixelEvent): Promise<void> {
     const body = JSON.stringify(event);
-    const size = new Blob([body]).size;
+    const size = encoder.encode(body).length;
     if (size > MAX_PAYLOAD_BYTES) {
       console.warn(`[palitra] dropped oversize event "${event.event}":`, size);
+      return;
+    }
+    if (this.pending.size >= MAX_PENDING) {
+      if (this.config.debug) {
+        console.warn(`[palitra] dropped event "${event.event}": pending queue full`);
+      }
       return;
     }
     const entry: PendingEntry = { body, timer: null };
@@ -38,7 +47,7 @@ export class Transport {
 
   flushOnUnload(): void {
     if (typeof navigator.sendBeacon !== "function") return;
-    const url = `${this.config.endpoint}/collect?token=${this.config.token}`;
+    const url = `${this.config.endpoint}/collect?token=${encodeURIComponent(this.config.token)}`;
     for (const entry of this.pending) {
       if (entry.timer !== null) clearTimeout(entry.timer);
       navigator.sendBeacon(url, new Blob([entry.body], { type: "application/json" }));
@@ -58,9 +67,7 @@ export class Transport {
         },
         body: entry.body,
       });
-    } catch {
-      // Network error — fall through to retry logic.
-    }
+    } catch {}
 
     if (response && response.ok) {
       return;

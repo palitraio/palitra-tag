@@ -1,5 +1,5 @@
 import type { LinkedId, PixelConfig } from "./types.ts";
-import { ID_TYPE_PATTERN, MAX_LINKED_IDS } from "./types.ts";
+import { ID_TYPE_PATTERN, MAX_ID_VALUE_LENGTH, MAX_LINKED_IDS } from "./types.ts";
 
 export const UID_KEY = "_plt_uid";
 export const LINKS_KEY = "_plt_links";
@@ -28,7 +28,9 @@ function writeLinks(links: Record<string, string>): void {
 
 export function addLink(idType: string, idValue: string): void {
   if (!ID_TYPE_PATTERN.test(idType)) return;
-  if (typeof idValue !== "string" || idValue.length === 0 || idValue.length > 1024) return;
+  if (typeof idValue !== "string" || idValue.length === 0 || idValue.length > MAX_ID_VALUE_LENGTH) {
+    return;
+  }
   const links = readLinks();
   links[idType] = idValue;
   writeLinks(links);

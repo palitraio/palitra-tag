@@ -3,23 +3,13 @@ export interface LinkedId {
   id_value: string;
 }
 
-export interface PixelEvent {
+export interface PixelEvent extends SourceFields {
   event: string;
   url: string;
   referrer?: string;
   linked_ids?: LinkedId[];
   properties?: Record<string, unknown>;
   timestamp?: string;
-
-  source?: string;
-  medium?: string;
-  campaign_id?: string;
-  adgroup_id?: string;
-  ad_id?: string;
-  keyword?: string;
-  placement?: string;
-  site?: string;
-  slot?: string;
 }
 
 export interface IdentityConfigEntry {
@@ -32,17 +22,21 @@ export interface PixelConfig {
   identity: IdentityConfigEntry[];
 }
 
-export interface SourceFields {
-  source?: string;
-  medium?: string;
-  campaign_id?: string;
-  adgroup_id?: string;
-  ad_id?: string;
-  keyword?: string;
-  placement?: string;
-  site?: string;
-  slot?: string;
-}
+export const SOURCE_FIELD_KEYS = [
+  "source",
+  "medium",
+  "campaign_id",
+  "adgroup_id",
+  "ad_id",
+  "keyword",
+  "placement",
+  "site",
+  "slot",
+] as const;
+
+export type SourceFieldKey = (typeof SOURCE_FIELD_KEYS)[number];
+
+export type SourceFields = Partial<Record<SourceFieldKey, string>>;
 
 export interface InitOptions {
   endpoint?: string;
@@ -63,5 +57,6 @@ export const DEFAULT_OPTIONS: ResolvedOptions = {
 };
 
 export const MAX_LINKED_IDS = 32;
+export const MAX_ID_VALUE_LENGTH = 1024;
 export const MAX_PAYLOAD_BYTES = 64 * 1024;
 export const ID_TYPE_PATTERN = /^[a-z][a-z0-9_]{0,63}$/;
