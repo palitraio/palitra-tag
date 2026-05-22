@@ -2,8 +2,18 @@ const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "ut
 
 export type UtmParams = Partial<Record<(typeof UTM_KEYS)[number], string>>;
 
+function safeParse(url: string): URL | null {
+  try {
+    return new URL(url);
+  } catch {
+    return null;
+  }
+}
+
 export function parseUtm(url: string): UtmParams {
-  const params = new URL(url).searchParams;
+  const parsed = safeParse(url);
+  if (!parsed) return {};
+  const params = parsed.searchParams;
   const out: UtmParams = {};
   for (const key of UTM_KEYS) {
     const value = params.get(key);
@@ -15,7 +25,9 @@ export function parseUtm(url: string): UtmParams {
 }
 
 export function getPalitraParam(url: string): string | null {
-  const value = new URL(url).searchParams.get("palitra");
+  const parsed = safeParse(url);
+  if (!parsed) return null;
+  const value = parsed.searchParams.get("palitra");
   return value && value.length > 0 ? value : null;
 }
 
@@ -38,14 +50,16 @@ export function getPltContent(utmContent: string | undefined): Record<string, st
 }
 
 export function stripPalitraParam(): void {
-  const url = new URL(location.href);
-  if (!url.searchParams.has("palitra")) {
-    return;
-  }
+  const url = safeParse(location.href);
+  if (!url || !url.searchParams.has("palitra")) return;
   url.searchParams.delete("palitra");
   const next =
     url.pathname +
     (url.searchParams.toString() ? `?${url.searchParams.toString()}` : "") +
     url.hash;
-  history.replaceState(history.state, "", next);
+  try {
+    history.replaceState(history.state, "", next);
+  } catch {
+    /* sandboxed iframe — leave URL as-is */
+  }
 }

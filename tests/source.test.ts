@@ -3,7 +3,7 @@ import { resolveSource } from "../src/source.ts";
 
 describe("resolveSource", () => {
   it("returns direct when no URL or referrer signals", () => {
-    expect(resolveSource("https://shop.test/", "")).toEqual({ source: "direct" });
+    expect(resolveSource("https://shop.test/", "")).toEqual({ kind: "direct" });
   });
 
   it("uses palitra= when present (highest priority)", () => {
@@ -12,7 +12,7 @@ describe("resolveSource", () => {
         "https://shop.test/?palitra=ptag_abc&utm_source=fb&utm_content=plt||source=ig",
         "https://referrer.test/",
       ),
-    ).toEqual({ source: "palitra", ad_id: "ptag_abc" });
+    ).toEqual({ kind: "palitra", ad_id: "ptag_abc" });
   });
 
   it("falls back to plt|| when palitra= absent", () => {
@@ -21,7 +21,10 @@ describe("resolveSource", () => {
         "https://shop.test/?utm_content=plt||source=google|campaign_id=spring|ad_id=a99&utm_source=facebook",
         "https://referrer.test/",
       ),
-    ).toEqual({ source: "google", campaign_id: "spring", ad_id: "a99" });
+    ).toEqual({
+      kind: "plt",
+      fields: { source: "google", campaign_id: "spring", ad_id: "a99" },
+    });
   });
 
   it("falls back to plain UTM when no palitra= and no plt||", () => {
@@ -31,22 +34,27 @@ describe("resolveSource", () => {
         "https://other.test/",
       ),
     ).toEqual({
-      source: "google",
-      medium: "cpc",
-      campaign_id: "spring",
-      ad_id: "ad42",
-      keyword: "shoes",
+      kind: "utm",
+      fields: {
+        source: "google",
+        medium: "cpc",
+        campaign_id: "spring",
+        ad_id: "ad42",
+        keyword: "shoes",
+      },
     });
   });
 
   it("uses referrer host when no UTM signals", () => {
     expect(resolveSource("https://shop.test/", "https://news.example/article/1")).toEqual({
-      source: "news.example",
-      medium: "referral",
+      kind: "referral",
+      host: "news.example",
     });
   });
 
   it("treats same-host referrer as direct", () => {
-    expect(resolveSource("https://shop.test/page", "https://shop.test/other")).toEqual({ source: "direct" });
+    expect(resolveSource("https://shop.test/page", "https://shop.test/other")).toEqual({
+      kind: "direct",
+    });
   });
 });

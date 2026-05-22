@@ -1,44 +1,75 @@
 import type { LinkedId, PixelConfig } from "./types.ts";
-import { ID_TYPE_PATTERN, MAX_ID_VALUE_LENGTH, MAX_LINKED_IDS } from "./types.ts";
+import { asIdType, asIdValue, MAX_LINKED_IDS } from "./types.ts";
 
 export const UID_KEY = "_plt_uid";
 export const LINKS_KEY = "_plt_links";
 
+let memoryUid: string | null = null;
+let memoryLinks: Record<string, string> | null = null;
+
 export function setUserId(userId: string): void {
-  if (typeof userId !== "string" || userId.length === 0) {
-    return;
+  if (typeof userId !== "string" || userId.length === 0) return;
+  try {
+    localStorage.setItem(UID_KEY, userId);
+  } catch {
+    memoryUid = userId;
   }
-  localStorage.setItem(UID_KEY, userId);
 }
 
 function readLinks(): Record<string, string> {
-  const raw = localStorage.getItem(LINKS_KEY);
-  if (raw === null) return {};
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(LINKS_KEY);
+  } catch {
+    return memoryLinks ?? {};
+  }
+  if (raw === null) return memoryLinks ?? {};
   try {
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? (parsed as Record<string, string>) : {};
+    if (parsed && typeof parsed === "object") {
+      return parsed as Record<string, string>;
+    }
   } catch {
-    return {};
+    try {
+      localStorage.removeItem(LINKS_KEY);
+    } catch { /* in-memory fallback below */ }
   }
+  return memoryLinks ?? {};
 }
 
 function writeLinks(links: Record<string, string>): void {
-  localStorage.setItem(LINKS_KEY, JSON.stringify(links));
+  try {
+    localStorage.setItem(LINKS_KEY, JSON.stringify(links));
+    memoryLinks = null;
+  } catch {
+    memoryLinks = { ...links };
+  }
+}
+
+function readUid(): string | null {
+  try {
+    return localStorage.getItem(UID_KEY) ?? memoryUid;
+  } catch {
+    return memoryUid;
+  }
 }
 
 export function addLink(idType: string, idValue: string): void {
-  if (!ID_TYPE_PATTERN.test(idType)) return;
-  if (typeof idValue !== "string" || idValue.length === 0 || idValue.length > MAX_ID_VALUE_LENGTH) {
-    return;
-  }
+  if (asIdType(idType) === null) return;
+  if (asIdValue(idValue) === null) return;
   const links = readLinks();
   links[idType] = idValue;
   writeLinks(links);
 }
 
 function readCookie(name: string): string | null {
-  const cookies = document.cookie.split(";");
-  for (const cookie of cookies) {
+  let cookieString: string;
+  try {
+    cookieString = document.cookie;
+  } catch {
+    return null;
+  }
+  for (const cookie of cookieString.split(";")) {
     const eq = cookie.indexOf("=");
     if (eq === -1) continue;
     const key = cookie.slice(0, eq).trim();
@@ -49,28 +80,35 @@ function readCookie(name: string): string | null {
   return null;
 }
 
+// Map.set is last-write-wins, so we layer from lowest priority to highest:
+// auto-read → manual link() → identify().
 export function collectLinkedIds(config: PixelConfig): LinkedId[] {
   const collected = new Map<string, string>();
 
-  // Lowest priority: auto-read from configured cookies/localStorage.
   for (const entry of config.identity) {
-    if (!ID_TYPE_PATTERN.test(entry.id_type)) continue;
-    const value =
-      entry.storage === "cookie" ? readCookie(entry.key) : localStorage.getItem(entry.key);
+    if (asIdType(entry.id_type) === null) continue;
+    let value: string | null;
+    if (entry.storage === "cookie") {
+      value = readCookie(entry.key);
+    } else {
+      try {
+        value = localStorage.getItem(entry.key);
+      } catch {
+        value = null;
+      }
+    }
     if (value && value.length > 0) {
       collected.set(entry.id_type, value);
     }
   }
 
-  // Mid priority: manual link() entries.
   for (const [idType, idValue] of Object.entries(readLinks())) {
-    if (ID_TYPE_PATTERN.test(idType) && idValue) {
+    if (asIdType(idType) !== null && idValue) {
       collected.set(idType, idValue);
     }
   }
 
-  // Highest priority: identify().
-  const userId = localStorage.getItem(UID_KEY);
+  const userId = readUid();
   if (userId) {
     collected.set("user_id", userId);
   }

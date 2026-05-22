@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { Transport } from "../src/transport.ts";
-import type { PixelEvent } from "../src/types.ts";
+import type { PixelEvent, PixelToken } from "../src/types.ts";
 
-const TOKEN = "ptok_test";
+const TOKEN = "ptok_test" as PixelToken;
 const ENDPOINT = "https://api.test/api/v1/pixel";
 
 function event(over: Partial<PixelEvent> = {}): PixelEvent {
@@ -101,6 +101,41 @@ describe("Transport.send", () => {
       `${ENDPOINT}/collect?token=${TOKEN}`,
       expect.any(Blob),
     );
+  });
+
+  it("Retry-After accepts HTTP-date format", async () => {
+    const targetMs = Date.now() + 2500;
+    const dateHeader = new Date(targetMs).toUTCString();
+    fetchMock
+      .mockResolvedValueOnce(new Response(null, { status: 429, headers: { "Retry-After": dateHeader } }))
+      .mockResolvedValueOnce(new Response(null, { status: 202 }));
+    const pending = transport.send(event());
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(5000);
+    await pending;
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("flushOnUnload does not re-send entry whose fetch completes after beacon", async () => {
+    let resolveFetch!: (response: Response) => void;
+    fetchMock.mockReturnValueOnce(new Promise<Response>((r) => { resolveFetch = r; }));
+    void transport.send(event({ event: "race" }));
+    await vi.advanceTimersByTimeAsync(0);
+    transport.flushOnUnload();
+    expect(beaconMock).toHaveBeenCalledTimes(1);
+    resolveFetch(new Response(null, { status: 500 }));
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("flushOnUnload skips when sendBeacon returns false", async () => {
+    beaconMock.mockReturnValue(false);
+    fetchMock.mockReturnValueOnce(new Promise<Response>(() => {}));
+    void transport.send(event({ event: "refused" }));
+    await vi.advanceTimersByTimeAsync(0);
+    transport.flushOnUnload();
+    expect(beaconMock).toHaveBeenCalledTimes(1);
   });
 
   it("flushes in-flight first-attempt requests via sendBeacon on unload", async () => {

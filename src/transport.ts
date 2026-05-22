@@ -1,15 +1,17 @@
-import type { PixelEvent } from "./types.ts";
+import type { PixelEvent, PixelToken } from "./types.ts";
 import { MAX_PAYLOAD_BYTES } from "./types.ts";
 
 interface TransportConfig {
   endpoint: string;
-  token: string;
+  token: PixelToken;
   debug: boolean;
 }
 
 interface PendingEntry {
   body: string;
+  size: number;
   timer: ReturnType<typeof setTimeout> | null;
+  abandoned: boolean;
 }
 
 const MAX_ATTEMPTS = 5;
@@ -36,7 +38,7 @@ export class Transport {
       }
       return;
     }
-    const entry: PendingEntry = { body, timer: null };
+    const entry: PendingEntry = { body, size, timer: null, abandoned: false };
     this.pending.add(entry);
     try {
       await this.attempt(entry, 1);
@@ -49,10 +51,19 @@ export class Transport {
     if (typeof navigator.sendBeacon !== "function") return;
     const url = `${this.config.endpoint}/collect?token=${encodeURIComponent(this.config.token)}`;
     for (const entry of this.pending) {
-      if (entry.timer !== null) clearTimeout(entry.timer);
-      navigator.sendBeacon(url, new Blob([entry.body], { type: "application/json" }));
+      if (entry.timer !== null) {
+        clearTimeout(entry.timer);
+        entry.timer = null;
+      }
+      if (entry.size > MAX_PAYLOAD_BYTES) continue;
+      const blob = new Blob([entry.body], { type: "application/json" });
+      const queued = navigator.sendBeacon(url, blob);
+      if (queued) {
+        entry.abandoned = true;
+      } else if (this.config.debug) {
+        console.warn("[palitra] sendBeacon refused payload on unload");
+      }
     }
-    this.pending.clear();
   }
 
   private async attempt(entry: PendingEntry, attempt: number): Promise<void> {
@@ -67,11 +78,14 @@ export class Transport {
         },
         body: entry.body,
       });
-    } catch {}
-
-    if (response && response.ok) {
-      return;
+    } catch (err) {
+      if (this.config.debug) {
+        console.warn("[palitra] /collect fetch failed:", err);
+      }
     }
+
+    if (entry.abandoned) return;
+    if (response && response.ok) return;
     if (response && response.status >= 400 && response.status < 500 && response.status !== 429) {
       if (this.config.debug) {
         console.warn(`[palitra] dropped event: ${response.status}`);
@@ -89,6 +103,10 @@ export class Transport {
     await new Promise<void>((resolve) => {
       entry.timer = setTimeout(() => {
         entry.timer = null;
+        if (entry.abandoned) {
+          resolve();
+          return;
+        }
         this.attempt(entry, attempt + 1).then(resolve, resolve);
       }, delay);
     });
@@ -98,9 +116,15 @@ export class Transport {
 function computeDelay(response: Response | undefined, attempt: number): number {
   const retryAfter = response?.headers.get("Retry-After");
   if (retryAfter) {
-    const seconds = Number(retryAfter);
+    const trimmed = retryAfter.trim();
+    const seconds = Number(trimmed);
     if (Number.isFinite(seconds) && seconds > 0) {
       return Math.min(seconds * 1000, MAX_BACKOFF_MS);
+    }
+    const httpDate = Date.parse(trimmed);
+    if (Number.isFinite(httpDate)) {
+      const wait = httpDate - Date.now();
+      if (wait > 0) return Math.min(wait, MAX_BACKOFF_MS);
     }
   }
   return Math.min(2 ** (attempt - 1) * 1000, MAX_BACKOFF_MS);

@@ -1,12 +1,19 @@
+import { parseCommand } from "./command.ts";
 import { fetchConfig } from "./config.ts";
 import { addLink, collectLinkedIds, setUserId } from "./identity.ts";
 import { installPageViewHooks } from "./pageview.ts";
 import { ensureSession, getSourceFields } from "./session.ts";
 import { Transport } from "./transport.ts";
-import type { InitOptions, PixelConfig, PixelEvent, ResolvedOptions } from "./types.ts";
+import type {
+  Command,
+  EventName,
+  InitOptions,
+  PixelConfig,
+  PixelEvent,
+  PixelToken,
+  ResolvedOptions,
+} from "./types.ts";
 import { DEFAULT_OPTIONS } from "./types.ts";
-
-type Command = unknown[];
 
 interface State {
   options: ResolvedOptions;
@@ -14,56 +21,63 @@ interface State {
   config: PixelConfig;
 }
 
-export function createDispatcher(): (args: Command) => void {
+export function createDispatcher(): (args: unknown[]) => void {
   let state: State | null = null;
   let initializing = false;
   let buffered: Command[] = [];
 
-  function handle(args: Command): void {
-    const name = args[0];
-    if (name === "init") {
+  function handle(args: unknown[]): void {
+    const result = parseCommand(args);
+    if (!result.ok) {
+      if (state?.options.debug) console.warn(`[palitra] ${result.reason}`);
+      return;
+    }
+    dispatch(result.command);
+  }
+
+  function dispatch(command: Command): void {
+    if (command.t === "init") {
       if (state !== null || initializing) {
         if (state?.options.debug) {
           console.warn("[palitra] init called more than once — ignoring");
         }
         return;
       }
-      const token = args[1];
-      const opts = (args[2] as InitOptions | undefined) ?? {};
-      if (typeof token !== "string" || token.length === 0) return;
-      void runInit(token, opts);
+      runInit(command.token, command.options).catch((err) => {
+        initializing = false;
+        if (command.options.debug) console.warn("[palitra] init failed:", err);
+      });
       return;
     }
     if (state === null) {
-      if (initializing) {
-        buffered.push(args);
-      }
+      if (initializing) buffered.push(command);
       return;
     }
-    runCommand(args, state);
+    run(command, state);
   }
 
-  async function runInit(token: string, opts: InitOptions): Promise<void> {
+  async function runInit(token: PixelToken, opts: InitOptions): Promise<void> {
     initializing = true;
     const options: ResolvedOptions = { ...DEFAULT_OPTIONS, ...opts };
-    const config = await fetchConfig(options.endpoint, token);
+    // Resolve source BEFORE the network round-trip so attribution is captured
+    // at page-entry time, not after a possibly-slow /config response.
+    ensureSession(document.referrer);
+    const config = await fetchConfig(options.endpoint, token, options.debug);
     const transport = new Transport({ endpoint: options.endpoint, token, debug: options.debug });
     state = { options, transport, config };
 
-    ensureSession(document.referrer);
-
     if (options.autoPageView) {
       installPageViewHooks(() => {
-        if (state) runCommand(["event", "page_view"], state);
+        if (state) run({ t: "event", name: "page_view" as EventName }, state);
       });
-      runCommand(["event", "page_view"], state);
+      run({ t: "event", name: "page_view" as EventName }, state);
     }
 
     const pending = buffered;
     buffered = [];
     initializing = false;
     for (const cmd of pending) {
-      runCommand(cmd, state);
+      run(cmd, state);
     }
 
     window.addEventListener("pagehide", () => transport.flushOnUnload());
@@ -74,29 +88,27 @@ export function createDispatcher(): (args: Command) => void {
     });
   }
 
-  function runCommand(args: Command, current: State): void {
-    const [name, a, b] = args;
-    switch (name) {
+  function run(command: Command, current: State): void {
+    switch (command.t) {
+      case "init":
+        if (current.options.debug) console.warn("[palitra] init called more than once — ignoring");
+        return;
       case "identify":
-        if (typeof a === "string") setUserId(a);
+        setUserId(command.userId);
         return;
       case "link":
-        if (typeof a === "string" && typeof b === "string") addLink(a, b);
+        addLink(command.idType, command.idValue);
         return;
       case "event":
-        if (typeof a === "string") {
-          void emit(a, b as Record<string, unknown> | undefined, current);
-        }
+        emit(command.name, command.props, current).catch((err) => {
+          if (current.options.debug) console.warn("[palitra] emit failed:", err);
+        });
         return;
-      default:
-        if (current.options.debug) {
-          console.warn(`[palitra] unknown command:`, name);
-        }
     }
   }
 
   function emit(
-    name: string,
+    name: EventName,
     props: Record<string, unknown> | undefined,
     current: State,
   ): Promise<void> {

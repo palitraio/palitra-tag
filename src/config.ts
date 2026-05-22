@@ -1,20 +1,54 @@
-import type { PixelConfig } from "./types.ts";
+import type { IdentityConfigEntry, PixelConfig, PixelToken } from "./types.ts";
 
 const EMPTY: PixelConfig = { identity: [] };
 
-export async function fetchConfig(endpoint: string, token: string): Promise<PixelConfig> {
+export async function fetchConfig(
+  endpoint: string,
+  token: PixelToken,
+  debug = false,
+): Promise<PixelConfig> {
+  let response: Response;
   try {
-    const response = await fetch(`${endpoint}/config`, {
+    response = await fetch(`${endpoint}/config`, {
       method: "GET",
       headers: { "X-Palitra-Pixel-Token": token },
     });
-    if (!response.ok) return EMPTY;
-    const data: unknown = await response.json();
-    if (!data || typeof data !== "object" || !Array.isArray((data as PixelConfig).identity)) {
-      return EMPTY;
-    }
-    return data as PixelConfig;
-  } catch {
+  } catch (err) {
+    if (debug) console.warn("[palitra] /config fetch failed:", err);
     return EMPTY;
   }
+  if (!response.ok) {
+    if (debug) console.warn(`[palitra] /config returned ${response.status}`);
+    return EMPTY;
+  }
+  let data: unknown;
+  try {
+    data = await response.json();
+  } catch (err) {
+    if (debug) console.warn("[palitra] /config returned invalid JSON:", err);
+    return EMPTY;
+  }
+  if (!data || typeof data !== "object" || !Array.isArray((data as PixelConfig).identity)) {
+    if (debug) console.warn("[palitra] /config payload has wrong shape:", data);
+    return EMPTY;
+  }
+  const identity: IdentityConfigEntry[] = [];
+  for (const entry of (data as PixelConfig).identity) {
+    if (isValidEntry(entry)) {
+      identity.push(entry);
+    } else if (debug) {
+      console.warn("[palitra] /config dropped malformed entry:", entry);
+    }
+  }
+  return { identity };
+}
+
+function isValidEntry(entry: unknown): entry is IdentityConfigEntry {
+  if (!entry || typeof entry !== "object") return false;
+  const e = entry as Record<string, unknown>;
+  return (
+    typeof e["id_type"] === "string" &&
+    typeof e["key"] === "string" &&
+    (e["storage"] === "cookie" || e["storage"] === "localStorage")
+  );
 }
