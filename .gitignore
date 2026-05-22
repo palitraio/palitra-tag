@@ -1,6 +1,7 @@
 docs
 CLAUDE.md
 node_modules
+dist
 *.log
 .DS_Store
 .vitest-cache
