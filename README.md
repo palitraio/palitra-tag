@@ -12,6 +12,29 @@ Client-side script that collects browser events for the Palitra platform. Also k
 - Automatically reads user identifiers from cookies/localStorage and sends them as `linked_ids`.
 - Supports manual identity linking via `palitra('link', idType, idValue)`.
 
+## Install
+
+Paste before `</head>` on every page you want to track. Replace `ptok_YOUR_PUBLIC_TOKEN` with the token from your project settings.
+
+```html
+<script>
+  (function(w,d,s){
+    w.PalitraObject=s;w[s]=w[s]||function(){(w[s].q=w[s].q||[]).push(arguments)};
+    var e=d.createElement('script');e.async=1;e.src='https://cdn.palitra.io/palitra.js';
+    d.head.appendChild(e);
+  })(window,document,'palitra');
+  palitra('init','ptok_YOUR_PUBLIC_TOKEN');
+</script>
+```
+
+### API
+
+```js
+palitra('identify', 'user-id');               // link anonymous sessions to a real user
+palitra('link', 'ga4_client_id', 'value');    // attach external analytics IDs
+palitra('event', 'purchase', { value: 5900, currency: 'RUB' });  // page_view is automatic
+```
+
 ## Authentication
 
 The public pixel token is passed via the `X-Palitra-Pixel-Token` header or the `?token=` query parameter. `project_id` is intentionally absent from the URL — the project is resolved from the token.
@@ -23,4 +46,4 @@ The public pixel token is passed via the `X-Palitra-Pixel-Token` header or the `
 
 ## License
 
-Proprietary. All rights reserved.
+[MIT](./LICENSE) © Palitra

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Palitra Tag — local example</title>
+</head>
+<body>
+  <h1>Palitra Tag example</h1>
+  <button id="track">Track purchase</button>
+  <script>
+    (function(w,d,s){
+      w.PalitraObject=s;w[s]=w[s]||function(){(w[s].q=w[s].q||[]).push(arguments)};
+      var e=d.createElement('script');e.async=1;e.src='/dist/palitra.js';
+      d.head.appendChild(e);
+    })(window,document,'palitra');
+    palitra('init','ptok_local_dev', { endpoint: 'http://localhost:8000/api/v1/pixel', debug: true });
+    document.getElementById('track').addEventListener('click', function () {
+      palitra('event','purchase', { value: 5900, currency: 'RUB' });
+    });
+  </script>
+</body>
+</html>
