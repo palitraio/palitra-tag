@@ -44,19 +44,21 @@ export interface PixelEvent extends SourceFields {
 }
 
 export interface IdentityConfigEntry {
-  id_type: string;
-  source: "cookie" | "local_storage";
-  key: string;
-  value_pattern?: string;
+  readonly id_type: string;
+  readonly source: "cookie" | "local_storage";
+  readonly key: string;
+  readonly value_pattern?: RegExp;
 }
 
 export interface PixelConfig {
-  identity_config: IdentityConfigEntry[];
+  readonly identity_config: readonly IdentityConfigEntry[];
 }
+
+export type StopReason = "unauthorized";
 
 export type BootstrapResult =
   | { kind: "ready"; config: PixelConfig }
-  | { kind: "stopped"; reason: "unauthorized" };
+  | { kind: "stopped"; reason: StopReason };
 
 export const SOURCE_FIELD_KEYS = [
   "source",

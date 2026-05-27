@@ -50,7 +50,12 @@ describe("identity", () => {
     localStorage.setItem("ym_uid", "ym-7");
     const config: PixelConfig = {
       identity_config: [
-        { id_type: "ga_client_id", source: "cookie", key: "_ga", value_pattern: "^GA\\d\\.\\d\\.(.+)$" },
+        {
+          id_type: "ga_client_id",
+          source: "cookie",
+          key: "_ga",
+          value_pattern: /^GA\d\.\d\.(.+)$/,
+        },
         { id_type: "ym_uid", source: "local_storage", key: "ym_uid" },
       ],
     };
@@ -92,17 +97,12 @@ describe("identity", () => {
     document.cookie = "_ga=garbage";
     const config: PixelConfig = {
       identity_config: [
-        { id_type: "ga_client_id", source: "cookie", key: "_ga", value_pattern: "^GA\\d\\.\\d\\.(.+)$" },
-      ],
-    };
-    expect(collectLinkedIds(config)).toEqual([]);
-  });
-
-  it("skips entry when value_pattern is an invalid regex", () => {
-    document.cookie = "_ga=GA1.2.foo";
-    const config: PixelConfig = {
-      identity_config: [
-        { id_type: "ga_client_id", source: "cookie", key: "_ga", value_pattern: "(" },
+        {
+          id_type: "ga_client_id",
+          source: "cookie",
+          key: "_ga",
+          value_pattern: /^GA\d\.\d\.(.+)$/,
+        },
       ],
     };
     expect(collectLinkedIds(config)).toEqual([]);

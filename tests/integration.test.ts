@@ -11,7 +11,7 @@ describe("integration: snippet -> bundle drain", () => {
     sessionStorage.clear();
     localStorage.clear();
     history.replaceState(null, "", "/?utm_source=google&utm_campaign=spring");
-    fetchMock = vi.fn(() => Promise.resolve(new Response(JSON.stringify({ identity_config: [] }), { status: 200 })));
+    fetchMock = vi.fn(() => Promise.resolve(new Response(JSON.stringify({ data: { identity_config: [] } }), { status: 200 })));
     globalThis.fetch = fetchMock as unknown as typeof fetch;
     const w = window as unknown as WindowBag;
     delete w["palitra"];
@@ -64,14 +64,16 @@ describe("integration: snippet -> bundle drain", () => {
         return Promise.resolve(
           new Response(
             JSON.stringify({
-              identity_config: [
-                {
-                  id_type: "ga_client_id",
-                  source: "cookie",
-                  key: "_ga",
-                  value_pattern: "^GA\\d\\.\\d\\.(.+)$",
-                },
-              ],
+              data: {
+                identity_config: [
+                  {
+                    id_type: "ga_client_id",
+                    source: "cookie",
+                    key: "_ga",
+                    value_pattern: "^GA\\d\\.\\d\\.(.+)$",
+                  },
+                ],
+              },
             }),
             { status: 200 },
           ),
@@ -96,7 +98,7 @@ describe("integration: snippet -> bundle drain", () => {
     fetchMock.mockImplementation((url: string) => {
       if (String(url).includes("/config")) {
         return Promise.resolve(
-          new Response(JSON.stringify({ identity_config: [] }), { status: 200 }),
+          new Response(JSON.stringify({ data: { identity_config: [] } }), { status: 200 }),
         );
       }
       return Promise.resolve(new Response(null, { status: 202 }));
@@ -134,7 +136,7 @@ describe("integration: snippet -> bundle drain", () => {
     fetchMock.mockImplementation((url: string) => {
       if (String(url).includes("/config")) {
         return Promise.resolve(
-          new Response(JSON.stringify({ identity_config: [] }), { status: 200 }),
+          new Response(JSON.stringify({ data: { identity_config: [] } }), { status: 200 }),
         );
       }
       return Promise.resolve(new Response(null, { status: 202 }));
@@ -160,7 +162,7 @@ describe("integration: snippet -> bundle drain", () => {
     fetchMock.mockImplementation((url: string) => {
       if (String(url).includes("/config")) {
         return Promise.resolve(
-          new Response(JSON.stringify({ identity_config: [] }), { status: 200 }),
+          new Response(JSON.stringify({ data: { identity_config: [] } }), { status: 200 }),
         );
       }
       return Promise.resolve(new Response(null, { status: 202 }));

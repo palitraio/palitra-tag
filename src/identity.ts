@@ -100,13 +100,7 @@ export function collectLinkedIds(config: PixelConfig): LinkedId[] {
     if (!value || value.length === 0) continue;
 
     if (entry.value_pattern !== undefined) {
-      let re: RegExp;
-      try {
-        re = new RegExp(entry.value_pattern);
-      } catch {
-        continue;
-      }
-      const match = value.match(re);
+      const match = value.match(entry.value_pattern);
       if (!match || match[1] === undefined || match[1].length === 0) continue;
       value = match[1];
     }

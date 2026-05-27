@@ -21,7 +21,7 @@ describe("createDispatcher", () => {
   });
 
   it("init fetches /config and fires initial page_view", async () => {
-    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ identity_config: [] }), { status: 200 }));
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ data: { identity_config: [] } }), { status: 200 }));
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 202 }));
     dispatch(["init", TOKEN]);
     await new Promise((r) => setTimeout(r, 0));
@@ -34,7 +34,7 @@ describe("createDispatcher", () => {
   });
 
   it("init is idempotent — second call is a no-op", async () => {
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ identity_config: [] }), { status: 200 }));
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ data: { identity_config: [] } }), { status: 200 }));
     dispatch(["init", TOKEN]);
     dispatch(["init", TOKEN]);
     await new Promise((r) => setTimeout(r, 0));
@@ -44,7 +44,7 @@ describe("createDispatcher", () => {
 
   it("event sends with source fields from session", async () => {
     history.replaceState(null, "", "/start?utm_source=google");
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ identity_config: [] }), { status: 200 }));
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ data: { identity_config: [] } }), { status: 200 }));
     dispatch(["init", TOKEN]);
     await new Promise((r) => setTimeout(r, 0));
     dispatch(["event", "purchase", { value: 100 }]);
@@ -60,7 +60,7 @@ describe("createDispatcher", () => {
   });
 
   it("identify attaches user_id linked_id to subsequent events", async () => {
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ identity_config: [] }), { status: 200 }));
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ data: { identity_config: [] } }), { status: 200 }));
     dispatch(["init", TOKEN]);
     await new Promise((r) => setTimeout(r, 0));
     dispatch(["identify", "U-7"]);
@@ -73,7 +73,7 @@ describe("createDispatcher", () => {
   });
 
   it("link adds external IDs to subsequent events", async () => {
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ identity_config: [] }), { status: 200 }));
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ data: { identity_config: [] } }), { status: 200 }));
     dispatch(["init", TOKEN]);
     await new Promise((r) => setTimeout(r, 0));
     dispatch(["link", "ga4_client_id", "1.42"]);
@@ -97,7 +97,7 @@ describe("createDispatcher", () => {
     expect(
       fetchMock.mock.calls.filter((c) => String(c[0]).endsWith("/collect")).length,
     ).toBe(0);
-    resolveConfig(new Response(JSON.stringify({ identity_config: [] }), { status: 200 }));
+    resolveConfig(new Response(JSON.stringify({ data: { identity_config: [] } }), { status: 200 }));
     await new Promise((r) => setTimeout(r, 0));
     await new Promise((r) => setTimeout(r, 0));
     const earlyCall = fetchMock.mock.calls
@@ -132,7 +132,7 @@ describe("createDispatcher", () => {
   });
 
   it("auto page_view fires on history.pushState after init", async () => {
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ identity_config: [] }), { status: 200 }));
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ data: { identity_config: [] } }), { status: 200 }));
     dispatch(["init", TOKEN]);
     await new Promise((r) => setTimeout(r, 0));
     fetchMock.mockClear();
