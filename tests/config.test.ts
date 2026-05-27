@@ -18,7 +18,8 @@ describe("fetchConfig", () => {
       new Response(JSON.stringify({ identity_config: [] }), { status: 200 }),
     );
     await fetchConfig(ENDPOINT, TOKEN);
-    const [url, init] = fetchMock.mock.calls[0];
+    expect(fetchMock.mock.calls.length).toBe(1);
+    const [url, init] = fetchMock.mock.calls[0]!;
     expect(url).toBe(`${ENDPOINT}/config?token=${encodeURIComponent(TOKEN)}`);
     // Public bootstrap: project is resolved server-side from the token.
     expect(String(url)).not.toMatch(/projects?\//i);
@@ -32,42 +33,47 @@ describe("fetchConfig", () => {
     }
   });
 
-  it("returns parsed identity from response", async () => {
-    const body = { identity: [{ id_type: "ga4_client_id", storage: "cookie", key: "_ga" }] };
+  it("returns parsed identity_config from response", async () => {
+    const body = {
+      identity_config: [
+        { id_type: "ga_client_id", source: "cookie", key: "_ga", value_pattern: "^GA\\d\\.\\d\\.(.+)$" },
+      ],
+    };
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(body), { status: 200 }));
-    expect(await fetchConfig(ENDPOINT, TOKEN)).toEqual(body);
+    expect(await fetchConfig(ENDPOINT, TOKEN)).toEqual({ identity_config: body.identity_config });
   });
 
-  it("returns empty identity on non-2xx", async () => {
+  it("returns empty identity_config on non-2xx (non-401)", async () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 500 }));
-    expect(await fetchConfig(ENDPOINT, TOKEN)).toEqual({ identity: [] });
+    expect(await fetchConfig(ENDPOINT, TOKEN)).toEqual({ identity_config: [] });
   });
 
-  it("returns empty identity on network error", async () => {
+  it("returns empty identity_config on network error", async () => {
     fetchMock.mockRejectedValueOnce(new Error("network"));
-    expect(await fetchConfig(ENDPOINT, TOKEN)).toEqual({ identity: [] });
+    expect(await fetchConfig(ENDPOINT, TOKEN)).toEqual({ identity_config: [] });
   });
 
-  it("returns empty identity on malformed JSON", async () => {
+  it("returns empty identity_config on malformed JSON", async () => {
     fetchMock.mockResolvedValueOnce(new Response("not json", { status: 200 }));
-    expect(await fetchConfig(ENDPOINT, TOKEN)).toEqual({ identity: [] });
+    expect(await fetchConfig(ENDPOINT, TOKEN)).toEqual({ identity_config: [] });
   });
 
   it("drops malformed entries but keeps valid ones", async () => {
     const body = {
-      identity: [
-        { id_type: "ga4_client_id", storage: "cookie", key: "_ga" },
+      identity_config: [
+        { id_type: "ga_client_id", source: "cookie", key: "_ga" },
         { id_type: "broken" },
         null,
-        { id_type: "x", storage: "indexeddb", key: "k" },
-        { id_type: "ym_uid", storage: "localStorage", key: "ym_uid" },
+        { id_type: "x", source: "indexeddb", key: "k" },
+        { id_type: "ym_uid", source: "local_storage", key: "ym_uid" },
+        { id_type: "bad_pattern", source: "cookie", key: "_ga", value_pattern: 42 },
       ],
     };
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify(body), { status: 200 }));
     const result = await fetchConfig(ENDPOINT, TOKEN);
-    expect(result.identity).toEqual([
-      { id_type: "ga4_client_id", storage: "cookie", key: "_ga" },
-      { id_type: "ym_uid", storage: "localStorage", key: "ym_uid" },
+    expect(result.identity_config).toEqual([
+      { id_type: "ga_client_id", source: "cookie", key: "_ga" },
+      { id_type: "ym_uid", source: "local_storage", key: "ym_uid" },
     ]);
   });
 
@@ -76,5 +82,6 @@ describe("fetchConfig", () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 500 }));
     await fetchConfig(ENDPOINT, TOKEN, true);
     expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
   });
 });

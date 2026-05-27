@@ -27,27 +27,30 @@ export async function fetchConfig(
     if (debug) console.warn("[palitra] /config returned invalid JSON:", err);
     return EMPTY;
   }
-  if (!data || typeof data !== "object" || !Array.isArray((data as PixelConfig).identity)) {
+  if (
+    !data ||
+    typeof data !== "object" ||
+    !Array.isArray((data as PixelConfig).identity_config)
+  ) {
     if (debug) console.warn("[palitra] /config payload has wrong shape:", data);
     return EMPTY;
   }
-  const identity: IdentityConfigEntry[] = [];
-  for (const entry of (data as PixelConfig).identity) {
+  const identity_config: IdentityConfigEntry[] = [];
+  for (const entry of (data as PixelConfig).identity_config) {
     if (isValidEntry(entry)) {
-      identity.push(entry);
+      identity_config.push(entry);
     } else if (debug) {
       console.warn("[palitra] /config dropped malformed entry:", entry);
     }
   }
-  return { identity };
+  return { identity_config };
 }
 
 function isValidEntry(entry: unknown): entry is IdentityConfigEntry {
   if (!entry || typeof entry !== "object") return false;
   const e = entry as Record<string, unknown>;
-  return (
-    typeof e["id_type"] === "string" &&
-    typeof e["key"] === "string" &&
-    (e["storage"] === "cookie" || e["storage"] === "localStorage")
-  );
+  if (typeof e["id_type"] !== "string" || typeof e["key"] !== "string") return false;
+  if (e["source"] !== "cookie" && e["source"] !== "local_storage") return false;
+  if (e["value_pattern"] !== undefined && typeof e["value_pattern"] !== "string") return false;
+  return true;
 }
