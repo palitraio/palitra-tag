@@ -54,6 +54,10 @@ export interface PixelConfig {
   identity_config: IdentityConfigEntry[];
 }
 
+export type BootstrapResult =
+  | { kind: "ready"; config: PixelConfig }
+  | { kind: "stopped"; reason: "unauthorized" };
+
 export const SOURCE_FIELD_KEYS = [
   "source",
   "medium",
