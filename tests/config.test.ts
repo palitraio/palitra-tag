@@ -13,18 +13,23 @@ describe("fetchConfig", () => {
     globalThis.fetch = fetchMock as unknown as typeof fetch;
   });
 
-  it("calls GET /config with token header", async () => {
+  it("calls GET /pixel/config with ?token= and no project_id, no Authorization", async () => {
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ identity: [] }), { status: 200 }),
+      new Response(JSON.stringify({ identity_config: [] }), { status: 200 }),
     );
     await fetchConfig(ENDPOINT, TOKEN);
-    expect(fetchMock).toHaveBeenCalledWith(
-      `${ENDPOINT}/config`,
-      expect.objectContaining({
-        method: "GET",
-        headers: expect.objectContaining({ "X-Palitra-Pixel-Token": TOKEN }),
-      }),
-    );
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${ENDPOINT}/config?token=${encodeURIComponent(TOKEN)}`);
+    // Public bootstrap: project is resolved server-side from the token.
+    expect(String(url)).not.toMatch(/projects?\//i);
+    expect(String(url)).not.toMatch(/project_id/i);
+    expect(init).toMatchObject({ method: "GET" });
+    const headers = (init as RequestInit).headers as Record<string, string> | undefined;
+    expect(headers?.["X-Palitra-Pixel-Token"]).toBeUndefined();
+    expect(headers?.["Authorization"]).toBeUndefined();
+    for (const v of Object.values(headers ?? {})) {
+      expect(String(v).toLowerCase()).not.toContain("project");
+    }
   });
 
   it("returns parsed identity from response", async () => {

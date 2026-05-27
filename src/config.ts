@@ -9,9 +9,8 @@ export async function fetchConfig(
 ): Promise<PixelConfig> {
   let response: Response;
   try {
-    response = await fetch(`${endpoint}/config`, {
+    response = await fetch(`${endpoint}/config?token=${encodeURIComponent(token)}`, {
       method: "GET",
-      headers: { "X-Palitra-Pixel-Token": token },
     });
   } catch (err) {
     if (debug) console.warn("[palitra] /config fetch failed:", err);
