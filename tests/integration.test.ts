@@ -155,4 +155,24 @@ describe("integration: snippet -> bundle drain", () => {
     expect(headers?.["Authorization"]).toBeUndefined();
     expect(headers?.["authorization"]).toBeUndefined();
   });
+
+  it("never calls /pixel/status", async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (String(url).includes("/config")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ identity_config: [] }), { status: 200 }),
+        );
+      }
+      return Promise.resolve(new Response(null, { status: 202 }));
+    });
+
+    const dispatch = createDispatcher();
+    dispatch(["init", "ptok_ok"]);
+    await new Promise((r) => setTimeout(r, 0));
+    dispatch(["event", "page_view"]);
+    await new Promise((r) => setTimeout(r, 0));
+
+    const statusCalls = fetchMock.mock.calls.filter(([u]) => String(u).includes("/status"));
+    expect(statusCalls).toHaveLength(0);
+  });
 });
