@@ -7,3 +7,4 @@ dist
 .vitest-cache
 .claude
 .serena
+docs-internal/
