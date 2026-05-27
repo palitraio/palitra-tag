@@ -85,10 +85,10 @@ function readCookie(name: string): string | null {
 export function collectLinkedIds(config: PixelConfig): LinkedId[] {
   const collected = new Map<string, string>();
 
-  for (const entry of config.identity) {
+  for (const entry of config.identity_config) {
     if (asIdType(entry.id_type) === null) continue;
     let value: string | null;
-    if (entry.storage === "cookie") {
+    if (entry.source === "cookie") {
       value = readCookie(entry.key);
     } else {
       try {

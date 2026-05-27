@@ -59,12 +59,15 @@ export function createDispatcher(): (args: unknown[]) => void {
   async function runInit(token: PixelToken, opts: InitOptions): Promise<void> {
     initializing = true;
     const options: ResolvedOptions = { ...DEFAULT_OPTIONS, ...opts };
-    // Resolve source BEFORE the network round-trip so attribution is captured
-    // at page-entry time, not after a possibly-slow /config response.
     ensureSession(document.referrer);
-    const config = await fetchConfig(options.endpoint, token, options.debug);
+    const result = await fetchConfig(options.endpoint, token, options.debug);
+    if (result.kind === "stopped") {
+      buffered = [];
+      initializing = false;
+      return;
+    }
     const transport = new Transport({ endpoint: options.endpoint, token, debug: options.debug });
-    state = { options, transport, config };
+    state = { options, transport, config: result.config };
 
     if (options.autoPageView) {
       installPageViewHooks(() => {

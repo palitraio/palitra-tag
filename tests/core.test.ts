@@ -21,11 +21,11 @@ describe("createDispatcher", () => {
   });
 
   it("init fetches /config and fires initial page_view", async () => {
-    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ identity: [] }), { status: 200 }));
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ identity_config: [] }), { status: 200 }));
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 202 }));
     dispatch(["init", TOKEN]);
     await new Promise((r) => setTimeout(r, 0));
-    const configCall = fetchMock.mock.calls.find((c) => String(c[0]).endsWith("/config"));
+    const configCall = fetchMock.mock.calls.find((c) => String(c[0]).includes("/config"));
     const collectCall = fetchMock.mock.calls.find((c) => String(c[0]).endsWith("/collect"));
     expect(configCall).toBeDefined();
     expect(collectCall).toBeDefined();
@@ -34,17 +34,17 @@ describe("createDispatcher", () => {
   });
 
   it("init is idempotent — second call is a no-op", async () => {
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ identity: [] }), { status: 200 }));
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ identity_config: [] }), { status: 200 }));
     dispatch(["init", TOKEN]);
     dispatch(["init", TOKEN]);
     await new Promise((r) => setTimeout(r, 0));
-    const configCalls = fetchMock.mock.calls.filter((c) => String(c[0]).endsWith("/config"));
+    const configCalls = fetchMock.mock.calls.filter((c) => String(c[0]).includes("/config"));
     expect(configCalls.length).toBe(1);
   });
 
   it("event sends with source fields from session", async () => {
     history.replaceState(null, "", "/start?utm_source=google");
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ identity: [] }), { status: 200 }));
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ identity_config: [] }), { status: 200 }));
     dispatch(["init", TOKEN]);
     await new Promise((r) => setTimeout(r, 0));
     dispatch(["event", "purchase", { value: 100 }]);
@@ -60,7 +60,7 @@ describe("createDispatcher", () => {
   });
 
   it("identify attaches user_id linked_id to subsequent events", async () => {
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ identity: [] }), { status: 200 }));
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ identity_config: [] }), { status: 200 }));
     dispatch(["init", TOKEN]);
     await new Promise((r) => setTimeout(r, 0));
     dispatch(["identify", "U-7"]);
@@ -73,7 +73,7 @@ describe("createDispatcher", () => {
   });
 
   it("link adds external IDs to subsequent events", async () => {
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ identity: [] }), { status: 200 }));
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ identity_config: [] }), { status: 200 }));
     dispatch(["init", TOKEN]);
     await new Promise((r) => setTimeout(r, 0));
     dispatch(["link", "ga4_client_id", "1.42"]);
@@ -97,7 +97,7 @@ describe("createDispatcher", () => {
     expect(
       fetchMock.mock.calls.filter((c) => String(c[0]).endsWith("/collect")).length,
     ).toBe(0);
-    resolveConfig(new Response(JSON.stringify({ identity: [] }), { status: 200 }));
+    resolveConfig(new Response(JSON.stringify({ identity_config: [] }), { status: 200 }));
     await new Promise((r) => setTimeout(r, 0));
     await new Promise((r) => setTimeout(r, 0));
     const earlyCall = fetchMock.mock.calls
@@ -112,8 +112,27 @@ describe("createDispatcher", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("stops init on 401: no /collect calls, no page_view, queued commands dropped", async () => {
+    // Override the global fetchMock to return 401 on /config
+    fetchMock.mockImplementation((url: string) => {
+      if (String(url).includes("/config")) {
+        return Promise.resolve(new Response(null, { status: 401 }));
+      }
+      return Promise.resolve(new Response(null, { status: 202 }));
+    });
+
+    dispatch(["init", TOKEN, { autoPageView: true }]);
+    dispatch(["event", "purchase", { value: 1 }]);
+
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+
+    const collectCalls = fetchMock.mock.calls.filter(([u]) => String(u).includes("/collect"));
+    expect(collectCalls).toHaveLength(0);
+  });
+
   it("auto page_view fires on history.pushState after init", async () => {
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ identity: [] }), { status: 200 }));
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ identity_config: [] }), { status: 200 }));
     dispatch(["init", TOKEN]);
     await new Promise((r) => setTimeout(r, 0));
     fetchMock.mockClear();
