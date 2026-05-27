@@ -85,10 +85,10 @@ function readCookie(name: string): string | null {
 export function collectLinkedIds(config: PixelConfig): LinkedId[] {
   const collected = new Map<string, string>();
 
-  for (const entry of config.identity) {
+  for (const entry of config.identity_config) {
     if (asIdType(entry.id_type) === null) continue;
     let value: string | null;
-    if (entry.storage === "cookie") {
+    if (entry.source === "cookie") {
       value = readCookie(entry.key);
     } else {
       try {
@@ -97,9 +97,15 @@ export function collectLinkedIds(config: PixelConfig): LinkedId[] {
         value = null;
       }
     }
-    if (value && value.length > 0) {
-      collected.set(entry.id_type, value);
+    if (!value || value.length === 0) continue;
+
+    if (entry.value_pattern !== undefined) {
+      const match = value.match(entry.value_pattern);
+      if (!match || match[1] === undefined || match[1].length === 0) continue;
+      value = match[1];
     }
+
+    collected.set(entry.id_type, value);
   }
 
   for (const [idType, idValue] of Object.entries(readLinks())) {
