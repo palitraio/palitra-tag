@@ -45,12 +45,13 @@ export interface PixelEvent extends SourceFields {
 
 export interface IdentityConfigEntry {
   id_type: string;
-  storage: "cookie" | "localStorage";
+  source: "cookie" | "local_storage";
   key: string;
+  value_pattern?: string;
 }
 
 export interface PixelConfig {
-  identity: IdentityConfigEntry[];
+  identity_config: IdentityConfigEntry[];
 }
 
 export const SOURCE_FIELD_KEYS = [

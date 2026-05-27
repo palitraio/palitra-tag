@@ -1,6 +1,6 @@
 import type { IdentityConfigEntry, PixelConfig, PixelToken } from "./types.ts";
 
-const EMPTY: PixelConfig = { identity: [] };
+const EMPTY: PixelConfig = { identity_config: [] };
 
 export async function fetchConfig(
   endpoint: string,

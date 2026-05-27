@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { setUserId, addLink, collectLinkedIds, UID_KEY, LINKS_KEY } from "../src/identity.ts";
 import type { PixelConfig } from "../src/types.ts";
 
-const emptyConfig: PixelConfig = { identity: [] };
+const emptyConfig: PixelConfig = { identity_config: [] };
 
 describe("identity", () => {
   beforeEach(() => {
