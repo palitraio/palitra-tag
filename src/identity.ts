@@ -97,9 +97,21 @@ export function collectLinkedIds(config: PixelConfig): LinkedId[] {
         value = null;
       }
     }
-    if (value && value.length > 0) {
-      collected.set(entry.id_type, value);
+    if (!value || value.length === 0) continue;
+
+    if (entry.value_pattern !== undefined) {
+      let re: RegExp;
+      try {
+        re = new RegExp(entry.value_pattern);
+      } catch {
+        continue;
+      }
+      const match = value.match(re);
+      if (!match || match[1] === undefined || match[1].length === 0) continue;
+      value = match[1];
     }
+
+    collected.set(entry.id_type, value);
   }
 
   for (const [idType, idValue] of Object.entries(readLinks())) {

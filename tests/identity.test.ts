@@ -45,28 +45,27 @@ describe("identity", () => {
     expect(collectLinkedIds(emptyConfig)).toEqual([]);
   });
 
-  it("auto-reads cookies and localStorage per config", () => {
-    document.cookie = "_ga=GA1.2.foo";
+  it("auto-reads cookies and localStorage per config (new field names)", () => {
+    document.cookie = "_ga=GA1.2.123456.789";
     localStorage.setItem("ym_uid", "ym-7");
     const config: PixelConfig = {
-      identity: [
-        { id_type: "ga4_client_id", storage: "cookie", key: "_ga" },
-        { id_type: "ym_uid", storage: "localStorage", key: "ym_uid" },
+      identity_config: [
+        { id_type: "ga_client_id", source: "cookie", key: "_ga", value_pattern: "^GA\\d\\.\\d\\.(.+)$" },
+        { id_type: "ym_uid", source: "local_storage", key: "ym_uid" },
       ],
     };
     const ids = collectLinkedIds(config);
-    expect(ids).toContainEqual({ id_type: "ga4_client_id", id_value: "GA1.2.foo" });
+    expect(ids).toContainEqual({ id_type: "ga_client_id", id_value: "123456.789" });
     expect(ids).toContainEqual({ id_type: "ym_uid", id_value: "ym-7" });
   });
 
   it("manual link() overrides auto-read for same id_type", () => {
     document.cookie = "_ga=auto-value";
-    addLink("ga4_client_id", "manual-value");
+    addLink("ga_client_id", "manual-value");
     const config: PixelConfig = {
-      identity: [{ id_type: "ga4_client_id", storage: "cookie", key: "_ga" }],
+      identity_config: [{ id_type: "ga_client_id", source: "cookie", key: "_ga" }],
     };
-    const ids = collectLinkedIds(config);
-    expect(ids).toEqual([{ id_type: "ga4_client_id", id_value: "manual-value" }]);
+    expect(collectLinkedIds(config)).toEqual([{ id_type: "ga_client_id", id_value: "manual-value" }]);
   });
 
   it("user_id always takes precedence over any conflicting id_type=user_id", () => {
@@ -87,5 +86,33 @@ describe("identity", () => {
     const raw = localStorage.getItem(LINKS_KEY);
     expect(raw).not.toBeNull();
     expect(JSON.parse(raw ?? "null")).toEqual({ ym_uid: "persisted" });
+  });
+
+  it("skips entry when value_pattern does not match", () => {
+    document.cookie = "_ga=garbage";
+    const config: PixelConfig = {
+      identity_config: [
+        { id_type: "ga_client_id", source: "cookie", key: "_ga", value_pattern: "^GA\\d\\.\\d\\.(.+)$" },
+      ],
+    };
+    expect(collectLinkedIds(config)).toEqual([]);
+  });
+
+  it("skips entry when value_pattern is an invalid regex", () => {
+    document.cookie = "_ga=GA1.2.foo";
+    const config: PixelConfig = {
+      identity_config: [
+        { id_type: "ga_client_id", source: "cookie", key: "_ga", value_pattern: "(" },
+      ],
+    };
+    expect(collectLinkedIds(config)).toEqual([]);
+  });
+
+  it("uses raw value when value_pattern is absent", () => {
+    document.cookie = "_ga=plain";
+    const config: PixelConfig = {
+      identity_config: [{ id_type: "ga_client_id", source: "cookie", key: "_ga" }],
+    };
+    expect(collectLinkedIds(config)).toEqual([{ id_type: "ga_client_id", id_value: "plain" }]);
   });
 });
