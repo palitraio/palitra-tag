@@ -8,14 +8,14 @@ export const SESSION_KEY = "_plt_sess";
 let cached: ResolvedSource | null = null;
 let memoryOnly = false;
 
-export function ensureSession(referrer: string): void {
+export function ensureSession(referrer: string, debug = false): void {
   const stored = readStorage();
   if (stored !== null) {
     cached = stored;
     return;
   }
   if (memoryOnly && cached !== null) return;
-  const src = resolveSource(location.href, referrer);
+  const src = resolveSource(location.href, referrer, debug);
   cached = src;
   writeStorage(src);
   stripPalitraParam();

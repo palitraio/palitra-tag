@@ -11,17 +11,17 @@ const UTM_TO_SOURCE_FIELD: Record<string, SourceFieldKey> = {
 
 const PLT_PREFIX = "plt||";
 
-export function resolveSource(url: string, referrer: string): ResolvedSource {
+export function resolveSource(url: string, referrer: string, debug = false): ResolvedSource {
   const palitraParam = getPalitraParam(url);
   if (palitraParam) {
-    const fields = parsePalitraLinker(palitraParam);
+    const fields = parsePalitraLinker(palitraParam, debug);
     if (fields) return { kind: "linker", origin: "palitra", fields };
   }
 
   const utm = parseUtm(url);
 
   if (utm.utm_content && utm.utm_content.startsWith(PLT_PREFIX)) {
-    const fields = parsePalitraLinker(utm.utm_content.slice(PLT_PREFIX.length));
+    const fields = parsePalitraLinker(utm.utm_content.slice(PLT_PREFIX.length), debug);
     if (fields) return { kind: "linker", origin: "plt", fields };
   }
 

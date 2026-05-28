@@ -59,7 +59,7 @@ export function createDispatcher(): (args: unknown[]) => void {
   async function runInit(token: PixelToken, opts: InitOptions): Promise<void> {
     initializing = true;
     const options: ResolvedOptions = { ...DEFAULT_OPTIONS, ...opts };
-    ensureSession(document.referrer);
+    ensureSession(document.referrer, options.debug);
     const result = await fetchConfig(options.endpoint, token, options.debug);
     if (result.kind === "stopped") {
       buffered = [];
@@ -115,7 +115,7 @@ export function createDispatcher(): (args: unknown[]) => void {
     props: Record<string, unknown> | undefined,
     current: State,
   ): Promise<void> {
-    ensureSession(document.referrer);
+    ensureSession(document.referrer, current.options.debug);
     const linked = collectLinkedIds(current.config);
     const referrer = document.referrer || undefined;
     const event: PixelEvent = {

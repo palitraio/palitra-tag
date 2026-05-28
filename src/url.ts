@@ -45,12 +45,15 @@ const LINKER_POSITIONS: readonly SourceFieldKey[] = [
   "slot",
 ];
 
-export function parsePalitraLinker(value: string | null | undefined): SourceFields | null {
+export function parsePalitraLinker(
+  value: string | null | undefined,
+  debug = false,
+): SourceFields | null {
   if (!value) return null;
   const segments = value.split("||");
   const version = segments[0];
   if (version !== "v1") {
-    console.warn("[palitra] unknown linker version:", version);
+    if (debug) console.warn("[palitra] unknown linker version:", version);
     return null;
   }
   const fields: SourceFields = {};

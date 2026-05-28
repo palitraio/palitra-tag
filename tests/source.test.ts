@@ -95,13 +95,22 @@ describe("resolveSource — Palitra Linker", () => {
     });
   });
 
-  it("falls through to UTM fallback when palitra= has unknown version", () => {
+  it("falls through to UTM fallback when palitra= has unknown version (silent without debug)", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const url = `https://shop.test/?palitra=${encodeURIComponent("v99||yd||cpc")}&utm_source=fb&utm_medium=cpc`;
     expect(resolveSource(url, "")).toEqual({
       kind: "utm",
       fields: { source: "fb", medium: "cpc" },
     });
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("warns on unknown linker version when debug=true", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const url = `https://shop.test/?palitra=${encodeURIComponent("v99||yd||cpc")}`;
+    resolveSource(url, "", true);
+    expect(warn).toHaveBeenCalledWith("[palitra] unknown linker version:", "v99");
     warn.mockRestore();
   });
 });

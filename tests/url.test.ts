@@ -86,23 +86,32 @@ describe("parsePalitraLinker", () => {
     });
   });
 
-  it("returns null and warns on unknown version", () => {
+  it("returns null on unknown version (silent without debug)", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     expect(parsePalitraLinker("v2||yd||cpc")).toBeNull();
-    expect(warn).toHaveBeenCalledWith("[palitra] unknown linker version:", "v2");
-    warn.mockRestore();
-  });
-
-  it("returns null on empty or missing input without warning", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(parsePalitraLinker("")).toBeNull();
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
   });
 
-  it("returns null on single-segment input (no version)", () => {
+  it("warns on unknown version when debug=true", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(parsePalitraLinker("v2||yd||cpc", true)).toBeNull();
+    expect(warn).toHaveBeenCalledWith("[palitra] unknown linker version:", "v2");
+    warn.mockRestore();
+  });
+
+  it("returns null on empty or missing input without warning even with debug", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(parsePalitraLinker("", true)).toBeNull();
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("returns null on single-segment input — warns only with debug", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     expect(parsePalitraLinker("anything")).toBeNull();
+    expect(warn).not.toHaveBeenCalled();
+    expect(parsePalitraLinker("anything", true)).toBeNull();
     expect(warn).toHaveBeenCalledWith("[palitra] unknown linker version:", "anything");
     warn.mockRestore();
   });
