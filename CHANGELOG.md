@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/palitraio/palitra-tag/compare/v1.2.1...v1.3.0) (2026-05-28)
+
+
+### Features
+
+* emit GA4-shaped events with top-level fields and items ([#8](https://github.com/palitraio/palitra-tag/issues/8)) ([f0a06e2](https://github.com/palitraio/palitra-tag/commit/f0a06e2bf715070560b40e3e00a2421bd343484a))
+
 ## [1.2.1](https://github.com/palitraio/palitra-tag/compare/v1.2.0...v1.2.1) (2026-05-28)
 
 
