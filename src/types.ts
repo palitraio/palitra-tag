@@ -67,8 +67,6 @@ export const EVENT_LEVEL_KEYS = [
   "tax",
 ] as const;
 
-export type EventLevelKey = (typeof EVENT_LEVEL_KEYS)[number];
-
 export interface EventLevelFields {
   value?: number;
   currency?: string;
