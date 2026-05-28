@@ -77,4 +77,9 @@ describe("splitEventPayload", () => {
     ])
     expect(result.properties).toEqual({ affiliate_network: "cj" })
   })
+
+  it("drops an explicit undefined items value rather than routing to properties", () => {
+    const result = splitEventPayload({ items: undefined })
+    expect(result).toEqual({ fields: {} })
+  })
 })
