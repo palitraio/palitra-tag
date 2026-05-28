@@ -87,6 +87,7 @@ describe("createDispatcher", () => {
       items: [{ item_id: "sku-1", price: 5900, quantity: 1 }],
       properties: { affiliate_network: "cj" },
     });
+    expect(purchase.properties).toStrictEqual({ affiliate_network: "cj" });
   });
 
   it("identify attaches user_id linked_id to subsequent events", async () => {
