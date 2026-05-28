@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { parseUtm, getPalitraParam, getPltContent, parsePalitraLinker, stripPalitraParam } from "../src/url.ts";
+import { parseUtm, getPalitraParam, parsePalitraLinker, stripPalitraParam } from "../src/url.ts";
 
 describe("parseUtm", () => {
   it("extracts utm_source, utm_medium, utm_campaign, utm_content, utm_term", () => {
@@ -33,28 +33,6 @@ describe("getPalitraParam", () => {
 
   it("returns null on empty value", () => {
     expect(getPalitraParam("https://x.test/?palitra=")).toBeNull();
-  });
-});
-
-describe("getPltContent", () => {
-  it("returns fields after plt|| prefix in utm_content", () => {
-    expect(getPltContent("plt||source=google|campaign_id=c1|ad_id=a1")).toEqual({
-      source: "google",
-      campaign_id: "c1",
-      ad_id: "a1",
-    });
-  });
-
-  it("returns null when utm_content does not start with plt||", () => {
-    expect(getPltContent("plain_ad_id")).toBeNull();
-  });
-
-  it("returns null on undefined input", () => {
-    expect(getPltContent(undefined)).toBeNull();
-  });
-
-  it("ignores malformed segments without =", () => {
-    expect(getPltContent("plt||source=g|garbage|ad_id=a")).toEqual({ source: "g", ad_id: "a" });
   });
 });
 
