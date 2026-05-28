@@ -122,6 +122,9 @@ export function createDispatcher(): (args: unknown[]) => void {
     const linked = collectLinkedIds(current.config);
     const referrer = document.referrer || undefined;
     const { fields, items, properties } = splitEventPayload(props);
+    if (props?.["items"] !== undefined && !Array.isArray(props["items"])) {
+      current.logger.warn("[palitra] event 'items' must be an array — routing it into properties");
+    }
     const event: PixelEvent = {
       event: name,
       url: location.href,

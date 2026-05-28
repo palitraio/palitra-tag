@@ -34,8 +34,8 @@ export interface LinkedId {
   id_value: string;
 }
 
-// GA4 items[] schema, mirrored verbatim per ADR-010. item_id is the only
-// required field; the tag does not validate types — the backend does.
+// Mirrors the GA4 items[] schema. item_id is the only required field; the tag
+// forwards values as-is and does not validate types — the backend does.
 export interface EventItem {
   item_id: string;
   item_name?: string;
@@ -75,6 +75,18 @@ export interface EventLevelFields {
   shipping?: number;
   tax?: number;
 }
+
+type EventLevelKey = (typeof EVENT_LEVEL_KEYS)[number];
+
+// Compile-time guard: EVENT_LEVEL_KEYS (runtime routing in splitEventPayload)
+// and EventLevelFields (wire types) must list identical keys, or a field added
+// to one but not the other would be silently misrouted into properties.
+type AssertEventLevelKeysMatch = [EventLevelKey] extends [keyof EventLevelFields]
+  ? [keyof EventLevelFields] extends [EventLevelKey]
+    ? true
+    : ["missing from EVENT_LEVEL_KEYS", Exclude<keyof EventLevelFields, EventLevelKey>]
+  : ["missing from EventLevelFields", Exclude<EventLevelKey, keyof EventLevelFields>];
+const _assertEventLevelKeysMatch: AssertEventLevelKeysMatch = true;
 
 export interface PixelEvent extends SourceFields, EventLevelFields {
   event: string;

@@ -45,6 +45,29 @@ describe("splitEventPayload", () => {
     expect(result).toEqual({ fields: {} });
   });
 
+  it("returns empty fields for an empty object", () => {
+    expect(splitEventPayload({})).toEqual({ fields: {} });
+  });
+
+  it("preserves null values (distinct from dropped undefined)", () => {
+    const result = splitEventPayload({ value: null, custom: null });
+    expect(result.fields).toEqual({ value: null });
+    expect(result.properties).toEqual({ custom: null });
+  });
+
+  it("keeps an empty items array rather than dropping it", () => {
+    const result = splitEventPayload({ items: [] });
+    expect(result.items).toEqual([]);
+    expect(result.fields).toEqual({});
+    expect(result.properties).toBeUndefined();
+  });
+
+  it("routes reserved-name keys into properties, never overwriting buckets", () => {
+    const result = splitEventPayload({ event: "fake", url: "spoofed", properties: { a: 1 } });
+    expect(result.fields).toEqual({});
+    expect(result.properties).toEqual({ event: "fake", url: "spoofed", properties: { a: 1 } });
+  });
+
   it("routes a non-array items value into properties", () => {
     const result = splitEventPayload({ items: "not-an-array" });
     expect(result.items).toBeUndefined();

@@ -90,6 +90,20 @@ describe("createDispatcher", () => {
     expect(purchase.properties).toStrictEqual({ affiliate_network: "cj" });
   });
 
+  it("canonical event/url win over same-named keys in props", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ data: { identity_config: [] } }), { status: 200 }));
+    dispatch(["init", TOKEN]);
+    await new Promise((r) => setTimeout(r, 0));
+    dispatch(["event", "purchase", { event: "fake", url: "https://evil.example" }]);
+    await new Promise((r) => setTimeout(r, 0));
+    const purchase = fetchMock.mock.calls
+      .map((c) => JSON.parse(String(c[1]?.body ?? "null")))
+      .find((b) => b?.event === "purchase");
+    expect(purchase.event).toBe("purchase");
+    expect(purchase.url).not.toBe("https://evil.example");
+    expect(purchase.properties).toStrictEqual({ event: "fake", url: "https://evil.example" });
+  });
+
   it("identify attaches user_id linked_id to subsequent events", async () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ data: { identity_config: [] } }), { status: 200 }));
     dispatch(["init", TOKEN]);
