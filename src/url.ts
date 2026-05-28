@@ -1,3 +1,5 @@
+import type { SourceFields, SourceFieldKey } from "./types.ts";
+
 const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
 
 export type UtmParams = Partial<Record<(typeof UTM_KEYS)[number], string>>;
@@ -29,6 +31,37 @@ export function getPalitraParam(url: string): string | null {
   if (!parsed) return null;
   const value = parsed.searchParams.get("palitra");
   return value && value.length > 0 ? value : null;
+}
+
+const LINKER_POSITIONS: readonly SourceFieldKey[] = [
+  "source",
+  "medium",
+  "campaign_id",
+  "adgroup_id",
+  "ad_id",
+  "keyword",
+  "placement",
+  "site",
+  "slot",
+];
+
+export function parsePalitraLinker(value: string | null | undefined): SourceFields | null {
+  if (!value) return null;
+  const segments = value.split("||");
+  const version = segments[0];
+  if (version !== "v1") {
+    console.warn("[palitra] unknown linker version:", version);
+    return null;
+  }
+  const fields: SourceFields = {};
+  for (let i = 0; i < LINKER_POSITIONS.length; i++) {
+    const key = LINKER_POSITIONS[i];
+    const segment = segments[i + 1];
+    if (key !== undefined && segment) {
+      fields[key] = segment;
+    }
+  }
+  return fields;
 }
 
 export function getPltContent(utmContent: string | undefined): Record<string, string> | null {
