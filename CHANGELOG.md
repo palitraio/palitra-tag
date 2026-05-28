@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/palitraio/palitra-tag/compare/v1.2.0...v1.2.1) (2026-05-28)
+
+
+### Bug Fixes
+
+* parse palitra= and plt|| as positional v1 linker, not raw ad_id ([#6](https://github.com/palitraio/palitra-tag/issues/6)) ([1d8be8d](https://github.com/palitraio/palitra-tag/commit/1d8be8dc844e47828a81c4bc26c4bffae7e9e2a6))
+
 ## [1.2.0](https://github.com/palitraio/palitra-tag/compare/v1.1.0...v1.2.0) (2026-05-27)
 
 
