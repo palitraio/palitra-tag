@@ -5,6 +5,7 @@ import {
   asIdValue,
   asPixelToken,
   toSourceFields,
+  type ResolvedSource,
 } from "../src/types.ts";
 
 describe("smart constructors", () => {
@@ -40,34 +41,57 @@ describe("smart constructors", () => {
 });
 
 describe("toSourceFields", () => {
-  it("projects palitra to flat fields", () => {
-    expect(toSourceFields({ kind: "palitra", ad_id: "a99" })).toEqual({
-      source: "palitra",
-      ad_id: "a99",
+  it("emits all linker fields verbatim (palitra= origin)", () => {
+    const resolved: ResolvedSource = {
+      kind: "linker",
+      origin: "palitra",
+      fields: {
+        source: "yd",
+        medium: "cpc",
+        campaign_id: "123",
+        adgroup_id: "456",
+        ad_id: "789",
+        keyword: "kw",
+        placement: "net",
+        site: "mail.ru",
+        slot: "sidebar",
+      },
+    };
+    expect(toSourceFields(resolved)).toEqual({
+      source: "yd",
+      medium: "cpc",
+      campaign_id: "123",
+      adgroup_id: "456",
+      ad_id: "789",
+      keyword: "kw",
+      placement: "net",
+      site: "mail.ru",
+      slot: "sidebar",
     });
   });
 
-  it("projects plt by copying fields", () => {
-    const fields = { source: "g", campaign_id: "c1" };
-    const out = toSourceFields({ kind: "plt", fields });
-    expect(out).toEqual(fields);
-    expect(out).not.toBe(fields);
+  it("emits identical payload for palitra= and plt|| origins on the same fields", () => {
+    const fields = { source: "yd", medium: "cpc", ad_id: "555" };
+    const fromPalitra = toSourceFields({ kind: "linker", origin: "palitra", fields });
+    const fromPlt = toSourceFields({ kind: "linker", origin: "plt", fields });
+    expect(fromPalitra).toEqual(fromPlt);
+    expect(fromPalitra).not.toBe(fields);
   });
 
-  it("projects utm by copying fields", () => {
-    expect(toSourceFields({ kind: "utm", fields: { source: "google" } })).toEqual({
-      source: "google",
-    });
+  it("emits utm fields as-is", () => {
+    expect(
+      toSourceFields({ kind: "utm", fields: { source: "google", medium: "cpc" } }),
+    ).toEqual({ source: "google", medium: "cpc" });
   });
 
-  it("projects referral with medium=referral", () => {
+  it("emits referral as host + referral medium", () => {
     expect(toSourceFields({ kind: "referral", host: "news.example" })).toEqual({
       source: "news.example",
       medium: "referral",
     });
   });
 
-  it("projects direct", () => {
+  it("emits direct as source=direct", () => {
     expect(toSourceFields({ kind: "direct" })).toEqual({ source: "direct" });
   });
 });

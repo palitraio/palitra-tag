@@ -76,16 +76,16 @@ export type SourceFieldKey = (typeof SOURCE_FIELD_KEYS)[number];
 
 export type SourceFields = Partial<Record<SourceFieldKey, string>>;
 
+export type LinkerOrigin = "palitra" | "plt";
+
 export type ResolvedSource =
-  | { kind: "palitra"; ad_id: string }
-  | { kind: "plt"; fields: SourceFields }
+  | { kind: "linker"; origin: LinkerOrigin; fields: SourceFields }
   | { kind: "utm"; fields: SourceFields }
   | { kind: "referral"; host: string }
   | { kind: "direct" };
 
 export const RESOLVED_SOURCE_KINDS: ReadonlySet<ResolvedSource["kind"]> = new Set([
-  "palitra",
-  "plt",
+  "linker",
   "utm",
   "referral",
   "direct",
@@ -93,9 +93,7 @@ export const RESOLVED_SOURCE_KINDS: ReadonlySet<ResolvedSource["kind"]> = new Se
 
 export function toSourceFields(src: ResolvedSource): SourceFields {
   switch (src.kind) {
-    case "palitra":
-      return { source: "palitra", ad_id: src.ad_id };
-    case "plt":
+    case "linker":
     case "utm":
       return { ...src.fields };
     case "referral":
