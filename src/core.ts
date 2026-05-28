@@ -1,5 +1,6 @@
 import { parseCommand } from "./command.ts";
 import { fetchConfig } from "./config.ts";
+import { splitEventPayload } from "./event-payload.ts";
 import { addLink, collectLinkedIds, setUserId } from "./identity.ts";
 import { createLogger } from "./logger.ts";
 import type { Logger } from "./logger.ts";
@@ -120,13 +121,19 @@ export function createDispatcher(): (args: unknown[]) => void {
     ensureSession(document.referrer);
     const linked = collectLinkedIds(current.config);
     const referrer = document.referrer || undefined;
+    const { fields, items, properties } = splitEventPayload(props);
+    if (props?.["items"] !== undefined && !Array.isArray(props["items"])) {
+      current.logger.warn("[palitra] event 'items' must be an array — routing it into properties");
+    }
     const event: PixelEvent = {
       event: name,
       url: location.href,
       ...(referrer !== undefined ? { referrer } : {}),
       ...getSourceFields(),
       ...(linked.length > 0 ? { linked_ids: linked } : {}),
-      ...(props ? { properties: props } : {}),
+      ...fields,
+      ...(items !== undefined ? { items } : {}),
+      ...(properties !== undefined ? { properties } : {}),
     };
     return current.transport.send(event);
   }

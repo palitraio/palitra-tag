@@ -34,11 +34,66 @@ export interface LinkedId {
   id_value: string;
 }
 
-export interface PixelEvent extends SourceFields {
+// Mirrors the GA4 items[] schema. item_id is the only required field; the tag
+// forwards values as-is and does not validate types — the backend does.
+export interface EventItem {
+  item_id: string;
+  item_name?: string;
+  item_brand?: string;
+  item_category?: string;
+  item_category2?: string;
+  item_category3?: string;
+  item_category4?: string;
+  item_category5?: string;
+  item_variant?: string;
+  coupon?: string;
+  item_list_id?: string;
+  item_list_name?: string;
+  affiliation?: string;
+  location_id?: string;
+  price?: number;
+  quantity?: number;
+  discount?: number;
+  index?: number;
+  properties?: Record<string, unknown>;
+}
+
+export const EVENT_LEVEL_KEYS = [
+  "value",
+  "currency",
+  "transaction_id",
+  "coupon",
+  "shipping",
+  "tax",
+] as const;
+
+export interface EventLevelFields {
+  value?: number;
+  currency?: string;
+  transaction_id?: string;
+  coupon?: string;
+  shipping?: number;
+  tax?: number;
+}
+
+type EventLevelKey = (typeof EVENT_LEVEL_KEYS)[number];
+
+// Compile-time guard: EVENT_LEVEL_KEYS (runtime routing in splitEventPayload)
+// and EventLevelFields (wire types) must list identical keys, or a field added
+// to one but not the other would be silently misrouted into properties.
+type AssertEventLevelKeysMatch = [EventLevelKey] extends [keyof EventLevelFields]
+  ? [keyof EventLevelFields] extends [EventLevelKey]
+    ? true
+    : ["missing from EVENT_LEVEL_KEYS", Exclude<keyof EventLevelFields, EventLevelKey>]
+  : ["missing from EventLevelFields", Exclude<EventLevelKey, keyof EventLevelFields>];
+const _assertEventLevelKeysMatch: AssertEventLevelKeysMatch = true;
+
+export interface PixelEvent extends SourceFields, EventLevelFields {
   event: string;
   url: string;
   referrer?: string;
   linked_ids?: LinkedId[];
+  items?: EventItem[];
   properties?: Record<string, unknown>;
   timestamp?: string;
 }

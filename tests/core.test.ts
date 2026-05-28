@@ -54,9 +54,54 @@ describe("createDispatcher", () => {
       .find((b) => b?.event === "purchase");
     expect(purchase).toMatchObject({
       event: "purchase",
-      properties: { value: 100 },
+      value: 100,
       source: "google",
     });
+    expect(purchase.properties).toBeUndefined();
+  });
+
+  it("lifts GA4 event-level fields and items to top level, keeps custom keys in properties", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ data: { identity_config: [] } }), { status: 200 }));
+    dispatch(["init", TOKEN]);
+    await new Promise((r) => setTimeout(r, 0));
+    dispatch([
+      "event",
+      "purchase",
+      {
+        value: 5900,
+        currency: "RUB",
+        transaction_id: "ord-1",
+        items: [{ item_id: "sku-1", price: 5900, quantity: 1 }],
+        affiliate_network: "cj",
+      },
+    ]);
+    await new Promise((r) => setTimeout(r, 0));
+    const purchase = fetchMock.mock.calls
+      .map((c) => JSON.parse(String(c[1]?.body ?? "null")))
+      .find((b) => b?.event === "purchase");
+    expect(purchase).toMatchObject({
+      event: "purchase",
+      value: 5900,
+      currency: "RUB",
+      transaction_id: "ord-1",
+      items: [{ item_id: "sku-1", price: 5900, quantity: 1 }],
+      properties: { affiliate_network: "cj" },
+    });
+    expect(purchase.properties).toStrictEqual({ affiliate_network: "cj" });
+  });
+
+  it("canonical event/url win over same-named keys in props", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ data: { identity_config: [] } }), { status: 200 }));
+    dispatch(["init", TOKEN]);
+    await new Promise((r) => setTimeout(r, 0));
+    dispatch(["event", "purchase", { event: "fake", url: "https://evil.example" }]);
+    await new Promise((r) => setTimeout(r, 0));
+    const purchase = fetchMock.mock.calls
+      .map((c) => JSON.parse(String(c[1]?.body ?? "null")))
+      .find((b) => b?.event === "purchase");
+    expect(purchase.event).toBe("purchase");
+    expect(purchase.url).not.toBe("https://evil.example");
+    expect(purchase.properties).toStrictEqual({ event: "fake", url: "https://evil.example" });
   });
 
   it("identify attaches user_id linked_id to subsequent events", async () => {
