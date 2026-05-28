@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+import { NOOP_LOGGER } from "../src/logger.ts";
 import { Transport } from "../src/transport.ts";
 import type { PixelEvent, PixelToken } from "../src/types.ts";
 
@@ -20,7 +21,7 @@ describe("Transport.send", () => {
     beaconMock = vi.fn(() => true);
     globalThis.fetch = fetchMock as unknown as typeof fetch;
     Object.defineProperty(navigator, "sendBeacon", { value: beaconMock, configurable: true });
-    transport = new Transport({ endpoint: ENDPOINT, token: TOKEN, debug: false });
+    transport = new Transport({ endpoint: ENDPOINT, token: TOKEN, logger: NOOP_LOGGER });
   });
 
   afterEach(() => {
@@ -44,8 +45,9 @@ describe("Transport.send", () => {
     );
   });
 
-  it("drops events over 64 KB and warns", async () => {
+  it("drops events over 64 KB and warns unconditionally (even with debug=false)", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    // transport built with NOOP_LOGGER in beforeEach — i.e. debug=false default.
     const huge = event({ properties: { blob: "x".repeat(70 * 1024) } });
     await transport.send(huge);
     expect(fetchMock).not.toHaveBeenCalled();

@@ -113,6 +113,7 @@ describe("createDispatcher", () => {
   });
 
   it("stops init on 401: no /collect calls, no page_view, queued commands dropped", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     // Override the global fetchMock to return 401 on /config
     fetchMock.mockImplementation((url: string) => {
       if (String(url).includes("/config")) {
@@ -129,6 +130,8 @@ describe("createDispatcher", () => {
 
     const collectCalls = fetchMock.mock.calls.filter(([u]) => String(u).includes("/collect"));
     expect(collectCalls).toHaveLength(0);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("401"));
+    warn.mockRestore();
   });
 
   it("auto page_view fires on history.pushState after init", async () => {

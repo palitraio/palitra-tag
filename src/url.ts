@@ -1,3 +1,6 @@
+import { ACTIVE_LOGGER } from "./logger.ts";
+import type { SourceFields, SourceFieldKey } from "./types.ts";
+
 const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
 
 export type UtmParams = Partial<Record<(typeof UTM_KEYS)[number], string>>;
@@ -31,22 +34,43 @@ export function getPalitraParam(url: string): string | null {
   return value && value.length > 0 ? value : null;
 }
 
-export function getPltContent(utmContent: string | undefined): Record<string, string> | null {
-  if (!utmContent || !utmContent.startsWith("plt||")) {
+// v1 positional Linker schema. Order is part of the public wire contract
+// shared with backend stitching — do NOT reorder or insert positions; bump
+// the version prefix instead.
+const LINKER_POSITIONS: readonly SourceFieldKey[] = [
+  "source",
+  "medium",
+  "campaign_id",
+  "adgroup_id",
+  "ad_id",
+  "keyword",
+  "placement",
+  "site",
+  "slot",
+];
+
+export function parsePalitraLinker(value: string | null | undefined): SourceFields | null {
+  if (!value) return null;
+  const segments = value.split("||");
+  const version = segments[0];
+  if (version !== "v1") {
+    ACTIVE_LOGGER.warn("[palitra] unknown linker version:", version);
     return null;
   }
-  const body = utmContent.slice("plt||".length);
-  const out: Record<string, string> = {};
-  for (const segment of body.split("|")) {
-    const eq = segment.indexOf("=");
-    if (eq <= 0) continue;
-    const key = segment.slice(0, eq);
-    const value = segment.slice(eq + 1);
-    if (key && value) {
-      out[key] = value;
+  const fields: SourceFields = {};
+  let assigned = 0;
+  for (const [i, key] of LINKER_POSITIONS.entries()) {
+    const segment = segments[i + 1];
+    if (segment) {
+      fields[key] = segment;
+      assigned++;
     }
   }
-  return out;
+  if (assigned === 0) {
+    ACTIVE_LOGGER.warn("[palitra] linker has no non-empty fields:", value);
+    return null;
+  }
+  return fields;
 }
 
 export function stripPalitraParam(): void {

@@ -116,7 +116,7 @@ describe("integration: snippet -> bundle drain", () => {
     expect(body.linked_ids).toBeUndefined();
   });
 
-  it("end-to-end: archived project — 401 on bootstrap is silent", async () => {
+  it("end-to-end: archived project — 401 on bootstrap stops collect calls and warns once", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     fetchMock.mockResolvedValue(new Response(null, { status: 401 }));
@@ -129,7 +129,9 @@ describe("integration: snippet -> bundle drain", () => {
 
     expect(fetchMock.mock.calls.filter(([u]) => String(u).includes("/collect"))).toHaveLength(0);
     expect(error).not.toHaveBeenCalled();
-    expect(warn).not.toHaveBeenCalled();
+    // 401 must surface to the site owner unconditionally — it means the tag
+    // is doing nothing and the install is broken.
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("401"));
   });
 
   it("end-to-end: bootstrap URL has no project_id and no Authorization header", async () => {

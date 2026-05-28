@@ -26,10 +26,17 @@ describe("ensureSession", () => {
   });
 
   it("strips palitra= from the URL after capturing it", () => {
-    history.replaceState(null, "", "/page?palitra=abc&keep=1");
+    const linker = "v1||yd||cpc||c-1||g-1||a-1";
+    history.replaceState(null, "", `/page?palitra=${encodeURIComponent(linker)}&keep=1`);
     ensureSession("");
     expect(location.pathname + location.search).toBe("/page?keep=1");
-    expect(getSourceFields()).toEqual({ source: "palitra", ad_id: "abc" });
+    expect(getSourceFields()).toEqual({
+      source: "yd",
+      medium: "cpc",
+      campaign_id: "c-1",
+      adgroup_id: "g-1",
+      ad_id: "a-1",
+    });
   });
 
   it("returns empty object from getSourceFields when no session", () => {

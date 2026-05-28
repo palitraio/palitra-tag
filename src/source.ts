@@ -1,6 +1,5 @@
 import type { ResolvedSource, SourceFieldKey, SourceFields } from "./types.ts";
-import { SOURCE_FIELD_KEYS } from "./types.ts";
-import { getPalitraParam, getPltContent, parseUtm } from "./url.ts";
+import { getPalitraParam, parsePalitraLinker, parseUtm } from "./url.ts";
 
 const UTM_TO_SOURCE_FIELD: Record<string, SourceFieldKey> = {
   utm_source: "source",
@@ -10,23 +9,20 @@ const UTM_TO_SOURCE_FIELD: Record<string, SourceFieldKey> = {
   utm_term: "keyword",
 };
 
-const SOURCE_FIELD_SET: ReadonlySet<string> = new Set(SOURCE_FIELD_KEYS);
+const PLT_PREFIX = "plt||";
 
 export function resolveSource(url: string, referrer: string): ResolvedSource {
-  const palitra = getPalitraParam(url);
-  if (palitra) return { kind: "palitra", ad_id: palitra };
+  const palitraParam = getPalitraParam(url);
+  if (palitraParam) {
+    const fields = parsePalitraLinker(palitraParam);
+    if (fields) return { kind: "linker", origin: "palitra", fields };
+  }
 
   const utm = parseUtm(url);
 
-  const plt = getPltContent(utm.utm_content);
-  if (plt) {
-    const fields: SourceFields = {};
-    for (const [key, value] of Object.entries(plt)) {
-      if (SOURCE_FIELD_SET.has(key) && value) {
-        fields[key as SourceFieldKey] = value;
-      }
-    }
-    return { kind: "plt", fields };
+  if (utm.utm_content && utm.utm_content.startsWith(PLT_PREFIX)) {
+    const fields = parsePalitraLinker(utm.utm_content.slice(PLT_PREFIX.length));
+    if (fields) return { kind: "linker", origin: "plt", fields };
   }
 
   if (Object.keys(utm).length > 0) {

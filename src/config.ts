@@ -1,3 +1,5 @@
+import type { Logger } from "./logger.ts";
+import { ACTIVE_LOGGER, NOOP_LOGGER } from "./logger.ts";
 import type { BootstrapResult, IdentityConfigEntry, PixelToken } from "./types.ts";
 
 interface IdentityConfigEntryDto {
@@ -17,7 +19,7 @@ const STOPPED: BootstrapResult = { kind: "stopped", reason: "unauthorized" };
 export async function fetchConfig(
   endpoint: string,
   token: PixelToken,
-  debug = false,
+  logger: Logger = NOOP_LOGGER,
 ): Promise<BootstrapResult> {
   let response: Response;
   try {
@@ -25,22 +27,22 @@ export async function fetchConfig(
       method: "GET",
     });
   } catch (err) {
-    if (debug) console.warn("[palitra] /config fetch failed:", err);
+    logger.warn("[palitra] /config fetch failed:", err);
     return EMPTY_READY;
   }
   if (response.status === 401) {
-    if (debug) console.warn("[palitra] /config rejected token (401) — stopping init");
+    ACTIVE_LOGGER.warn("[palitra] /config rejected token (401) — stopping init");
     return STOPPED;
   }
   if (!response.ok) {
-    console.warn(`[palitra] /config returned ${response.status}`);
+    ACTIVE_LOGGER.warn(`[palitra] /config returned ${response.status}`);
     return EMPTY_READY;
   }
   let body: unknown;
   try {
     body = await response.json();
   } catch (err) {
-    console.warn("[palitra] /config returned invalid JSON:", err);
+    ACTIVE_LOGGER.warn("[palitra] /config returned invalid JSON:", err);
     return EMPTY_READY;
   }
   const inner = (body as { data?: unknown } | null)?.data;
@@ -49,7 +51,7 @@ export async function fetchConfig(
     typeof inner !== "object" ||
     !Array.isArray((inner as PixelTagConfigDto).identity_config)
   ) {
-    console.warn("[palitra] /config payload has wrong shape:", body);
+    ACTIVE_LOGGER.warn("[palitra] /config payload has wrong shape:", body);
     return EMPTY_READY;
   }
   const entries: IdentityConfigEntry[] = [];
@@ -57,8 +59,8 @@ export async function fetchConfig(
     const parsed = parseEntry(raw);
     if (parsed !== null) {
       entries.push(parsed);
-    } else if (debug) {
-      console.warn("[palitra] /config dropped malformed entry:", raw);
+    } else {
+      logger.warn("[palitra] /config dropped malformed entry:", raw);
     }
   }
   return { kind: "ready", config: { identity_config: entries } };
@@ -77,13 +79,13 @@ function parseEntry(entry: unknown): IdentityConfigEntry | null {
   try {
     compiled = new RegExp(pattern);
   } catch {
-    console.warn(
+    ACTIVE_LOGGER.warn(
       `[palitra] /config dropped "${e["id_type"]}": value_pattern is not a valid regex: ${pattern}`,
     );
     return null;
   }
   if (!hasCaptureGroup(pattern)) {
-    console.warn(
+    ACTIVE_LOGGER.warn(
       `[palitra] /config dropped "${e["id_type"]}": value_pattern has no capture group: ${pattern}`,
     );
     return null;

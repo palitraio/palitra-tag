@@ -1,6 +1,8 @@
 import { parseCommand } from "./command.ts";
 import { fetchConfig } from "./config.ts";
 import { addLink, collectLinkedIds, setUserId } from "./identity.ts";
+import { createLogger } from "./logger.ts";
+import type { Logger } from "./logger.ts";
 import { installPageViewHooks } from "./pageview.ts";
 import { ensureSession, getSourceFields } from "./session.ts";
 import { Transport } from "./transport.ts";
@@ -17,6 +19,7 @@ import { DEFAULT_OPTIONS } from "./types.ts";
 
 interface State {
   options: ResolvedOptions;
+  logger: Logger;
   transport: Transport;
   config: PixelConfig;
 }
@@ -29,7 +32,7 @@ export function createDispatcher(): (args: unknown[]) => void {
   function handle(args: unknown[]): void {
     const result = parseCommand(args);
     if (!result.ok) {
-      if (state?.options.debug) console.warn(`[palitra] ${result.reason}`);
+      state?.logger.warn(`[palitra] ${result.reason}`);
       return;
     }
     dispatch(result.command);
@@ -38,14 +41,12 @@ export function createDispatcher(): (args: unknown[]) => void {
   function dispatch(command: Command): void {
     if (command.t === "init") {
       if (state !== null || initializing) {
-        if (state?.options.debug) {
-          console.warn("[palitra] init called more than once — ignoring");
-        }
+        state?.logger.warn("[palitra] init called more than once — ignoring");
         return;
       }
       runInit(command.token, command.options).catch((err) => {
         initializing = false;
-        if (command.options.debug) console.warn("[palitra] init failed:", err);
+        createLogger(command.options.debug ?? false).warn("[palitra] init failed:", err);
       });
       return;
     }
@@ -59,15 +60,16 @@ export function createDispatcher(): (args: unknown[]) => void {
   async function runInit(token: PixelToken, opts: InitOptions): Promise<void> {
     initializing = true;
     const options: ResolvedOptions = { ...DEFAULT_OPTIONS, ...opts };
+    const logger = createLogger(options.debug);
     ensureSession(document.referrer);
-    const result = await fetchConfig(options.endpoint, token, options.debug);
+    const result = await fetchConfig(options.endpoint, token, logger);
     if (result.kind === "stopped") {
       buffered = [];
       initializing = false;
       return;
     }
-    const transport = new Transport({ endpoint: options.endpoint, token, debug: options.debug });
-    state = { options, transport, config: result.config };
+    const transport = new Transport({ endpoint: options.endpoint, token, logger });
+    state = { options, logger, transport, config: result.config };
 
     if (options.autoPageView) {
       installPageViewHooks(() => {
@@ -94,7 +96,7 @@ export function createDispatcher(): (args: unknown[]) => void {
   function run(command: Command, current: State): void {
     switch (command.t) {
       case "init":
-        if (current.options.debug) console.warn("[palitra] init called more than once — ignoring");
+        current.logger.warn("[palitra] init called more than once — ignoring");
         return;
       case "identify":
         setUserId(command.userId);
@@ -104,7 +106,7 @@ export function createDispatcher(): (args: unknown[]) => void {
         return;
       case "event":
         emit(command.name, command.props, current).catch((err) => {
-          if (current.options.debug) console.warn("[palitra] emit failed:", err);
+          current.logger.warn("[palitra] emit failed:", err);
         });
         return;
     }
