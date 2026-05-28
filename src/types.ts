@@ -34,11 +34,56 @@ export interface LinkedId {
   id_value: string;
 }
 
-export interface PixelEvent extends SourceFields {
+// GA4 items[] schema, mirrored verbatim per ADR-010. item_id is the only
+// required field; the tag does not validate types — the backend does.
+export interface EventItem {
+  item_id: string;
+  item_name?: string;
+  item_brand?: string;
+  item_category?: string;
+  item_category2?: string;
+  item_category3?: string;
+  item_category4?: string;
+  item_category5?: string;
+  item_variant?: string;
+  coupon?: string;
+  item_list_id?: string;
+  item_list_name?: string;
+  affiliation?: string;
+  location_id?: string;
+  price?: number;
+  quantity?: number;
+  discount?: number;
+  index?: number;
+  properties?: Record<string, unknown>;
+}
+
+export const EVENT_LEVEL_KEYS = [
+  "value",
+  "currency",
+  "transaction_id",
+  "coupon",
+  "shipping",
+  "tax",
+] as const;
+
+export type EventLevelKey = (typeof EVENT_LEVEL_KEYS)[number];
+
+export interface EventLevelFields {
+  value?: number;
+  currency?: string;
+  transaction_id?: string;
+  coupon?: string;
+  shipping?: number;
+  tax?: number;
+}
+
+export interface PixelEvent extends SourceFields, EventLevelFields {
   event: string;
   url: string;
   referrer?: string;
   linked_ids?: LinkedId[];
+  items?: EventItem[];
   properties?: Record<string, unknown>;
   timestamp?: string;
 }
