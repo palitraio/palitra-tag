@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import { createLogger, NOOP_LOGGER } from "../src/logger.ts";
+import { NOOP_LOGGER } from "../src/logger.ts";
 import { Transport } from "../src/transport.ts";
 import type { PixelEvent, PixelToken } from "../src/types.ts";
 
@@ -45,15 +45,11 @@ describe("Transport.send", () => {
     );
   });
 
-  it("drops events over 64 KB and warns", async () => {
+  it("drops events over 64 KB and warns unconditionally (even with debug=false)", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const debugTransport = new Transport({
-      endpoint: ENDPOINT,
-      token: TOKEN,
-      logger: createLogger(true),
-    });
+    // transport built with NOOP_LOGGER in beforeEach — i.e. debug=false default.
     const huge = event({ properties: { blob: "x".repeat(70 * 1024) } });
-    await debugTransport.send(huge);
+    await transport.send(huge);
     expect(fetchMock).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("oversize"), expect.any(Number));
   });

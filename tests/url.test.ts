@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { createLogger } from "../src/logger.ts";
 import { parseUtm, getPalitraParam, parsePalitraLinker, stripPalitraParam } from "../src/url.ts";
 
 describe("parseUtm", () => {
@@ -38,7 +37,7 @@ describe("getPalitraParam", () => {
 });
 
 describe("parsePalitraLinker", () => {
-  it("parses the canonical Yandex example from data-stitching.md", () => {
+  it("parses the canonical Yandex example", () => {
     expect(
       parsePalitraLinker("v1||yd||cpc||123456||789||555||купить+кроссовки||network||mail.ru||sidebar"),
     ).toEqual({
@@ -87,33 +86,36 @@ describe("parsePalitraLinker", () => {
     });
   });
 
-  it("returns null on unknown version (silent without debug)", () => {
+  it("warns unconditionally on unknown version and returns null", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     expect(parsePalitraLinker("v2||yd||cpc")).toBeNull();
-    expect(warn).not.toHaveBeenCalled();
-    warn.mockRestore();
-  });
-
-  it("warns on unknown version when debug=true", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(parsePalitraLinker("v2||yd||cpc", createLogger(true))).toBeNull();
     expect(warn).toHaveBeenCalledWith("[palitra] unknown linker version:", "v2");
     warn.mockRestore();
   });
 
-  it("returns null on empty or missing input without warning even with debug", () => {
+  it("returns null on empty or missing input without warning", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(parsePalitraLinker("", createLogger(true))).toBeNull();
+    expect(parsePalitraLinker("")).toBeNull();
+    expect(parsePalitraLinker(null)).toBeNull();
+    expect(parsePalitraLinker(undefined)).toBeNull();
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
   });
 
-  it("returns null on single-segment input — warns only with debug", () => {
+  it("warns unconditionally on single-segment input and returns null", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     expect(parsePalitraLinker("anything")).toBeNull();
-    expect(warn).not.toHaveBeenCalled();
-    expect(parsePalitraLinker("anything", createLogger(true))).toBeNull();
     expect(warn).toHaveBeenCalledWith("[palitra] unknown linker version:", "anything");
+    warn.mockRestore();
+  });
+
+  it("returns null and warns when all positional segments are empty", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(parsePalitraLinker("v1||||||||||||||||")).toBeNull();
+    expect(warn).toHaveBeenCalledWith(
+      "[palitra] linker has no non-empty fields:",
+      "v1||||||||||||||||",
+    );
     warn.mockRestore();
   });
 
@@ -128,6 +130,20 @@ describe("parsePalitraLinker", () => {
       placement: "p",
       site: "s",
       slot: "t",
+    });
+  });
+
+  it("does not double-decode segments — receives already-decoded text from URLSearchParams", () => {
+    // A real linker delivered via `?palitra=...` is URL-decoded once by
+    // URLSearchParams before reaching the parser. The parser itself must not
+    // decode again, so a segment containing literal `%20` or `&` is preserved.
+    expect(parsePalitraLinker("v1||yd||cpc||c-1||g-1||a-1||hello%20world&utm=fake")).toEqual({
+      source: "yd",
+      medium: "cpc",
+      campaign_id: "c-1",
+      adgroup_id: "g-1",
+      ad_id: "a-1",
+      keyword: "hello%20world&utm=fake",
     });
   });
 });

@@ -1,5 +1,4 @@
 import { describe, it, expect, vi } from "vitest";
-import { createLogger } from "../src/logger.ts";
 import { resolveSource } from "../src/source.ts";
 
 describe("resolveSource", () => {
@@ -96,22 +95,46 @@ describe("resolveSource — Palitra Linker", () => {
     });
   });
 
-  it("falls through to UTM fallback when palitra= has unknown version (silent without debug)", () => {
+  it("falls through to UTM when palitra= has unknown version (and warns unconditionally)", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const url = `https://shop.test/?palitra=${encodeURIComponent("v99||yd||cpc")}&utm_source=fb&utm_medium=cpc`;
     expect(resolveSource(url, "")).toEqual({
       kind: "utm",
       fields: { source: "fb", medium: "cpc" },
     });
-    expect(warn).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith("[palitra] unknown linker version:", "v99");
     warn.mockRestore();
   });
 
-  it("warns on unknown linker version when debug=true", () => {
+  it("falls through to plt|| when palitra= has unknown version and a valid plt|| coexists", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const url = `https://shop.test/?palitra=${encodeURIComponent("v99||yd||cpc")}`;
-    resolveSource(url, "", createLogger(true));
+    const badPalitra = encodeURIComponent("v99||yd||cpc");
+    const goodPlt = encodeURIComponent("plt||" + canonical);
+    expect(resolveSource(`https://shop.test/?palitra=${badPalitra}&utm_content=${goodPlt}`, ""))
+      .toEqual({ kind: "linker", origin: "plt", fields: expectedFields });
+    warn.mockRestore();
+  });
+
+  it("falls through to plain UTM when plt|| has unknown version", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const badPlt = encodeURIComponent("plt||v99||yd||cpc");
+    expect(
+      resolveSource(`https://shop.test/?utm_content=${badPlt}&utm_source=fb&utm_medium=cpc`, ""),
+    ).toEqual({ kind: "utm", fields: { source: "fb", medium: "cpc", ad_id: "plt||v99||yd||cpc" } });
     expect(warn).toHaveBeenCalledWith("[palitra] unknown linker version:", "v99");
+    warn.mockRestore();
+  });
+
+  it("falls through to plain UTM when palitra= has v1 but all empty fields", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const empty = encodeURIComponent("v1||||||||");
+    expect(
+      resolveSource(`https://shop.test/?palitra=${empty}&utm_source=fb`, ""),
+    ).toEqual({ kind: "utm", fields: { source: "fb" } });
+    expect(warn).toHaveBeenCalledWith(
+      "[palitra] linker has no non-empty fields:",
+      "v1||||||||",
+    );
     warn.mockRestore();
   });
 });

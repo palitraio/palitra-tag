@@ -31,7 +31,7 @@ export async function fetchConfig(
     return EMPTY_READY;
   }
   if (response.status === 401) {
-    logger.warn("[palitra] /config rejected token (401) — stopping init");
+    ACTIVE_LOGGER.warn("[palitra] /config rejected token (401) — stopping init");
     return STOPPED;
   }
   if (!response.ok) {

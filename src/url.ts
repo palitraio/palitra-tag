@@ -1,5 +1,4 @@
-import type { Logger } from "./logger.ts";
-import { NOOP_LOGGER } from "./logger.ts";
+import { ACTIVE_LOGGER } from "./logger.ts";
 import type { SourceFields, SourceFieldKey } from "./types.ts";
 
 const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
@@ -35,6 +34,9 @@ export function getPalitraParam(url: string): string | null {
   return value && value.length > 0 ? value : null;
 }
 
+// v1 positional Linker schema. Order is part of the public wire contract
+// shared with backend stitching — do NOT reorder or insert positions; bump
+// the version prefix instead.
 const LINKER_POSITIONS: readonly SourceFieldKey[] = [
   "source",
   "medium",
@@ -47,24 +49,26 @@ const LINKER_POSITIONS: readonly SourceFieldKey[] = [
   "slot",
 ];
 
-export function parsePalitraLinker(
-  value: string | null | undefined,
-  logger: Logger = NOOP_LOGGER,
-): SourceFields | null {
+export function parsePalitraLinker(value: string | null | undefined): SourceFields | null {
   if (!value) return null;
   const segments = value.split("||");
   const version = segments[0];
   if (version !== "v1") {
-    logger.warn("[palitra] unknown linker version:", version);
+    ACTIVE_LOGGER.warn("[palitra] unknown linker version:", version);
     return null;
   }
   const fields: SourceFields = {};
-  for (let i = 0; i < LINKER_POSITIONS.length; i++) {
-    const key = LINKER_POSITIONS[i];
+  let assigned = 0;
+  for (const [i, key] of LINKER_POSITIONS.entries()) {
     const segment = segments[i + 1];
-    if (key !== undefined && segment) {
+    if (segment) {
       fields[key] = segment;
+      assigned++;
     }
+  }
+  if (assigned === 0) {
+    ACTIVE_LOGGER.warn("[palitra] linker has no non-empty fields:", value);
+    return null;
   }
   return fields;
 }

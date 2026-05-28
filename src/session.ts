@@ -1,5 +1,3 @@
-import type { Logger } from "./logger.ts";
-import { NOOP_LOGGER } from "./logger.ts";
 import { resolveSource } from "./source.ts";
 import { stripPalitraParam } from "./url.ts";
 import type { ResolvedSource, SourceFields } from "./types.ts";
@@ -10,14 +8,14 @@ export const SESSION_KEY = "_plt_sess";
 let cached: ResolvedSource | null = null;
 let memoryOnly = false;
 
-export function ensureSession(referrer: string, logger: Logger = NOOP_LOGGER): void {
+export function ensureSession(referrer: string): void {
   const stored = readStorage();
   if (stored !== null) {
     cached = stored;
     return;
   }
   if (memoryOnly && cached !== null) return;
-  const src = resolveSource(location.href, referrer, logger);
+  const src = resolveSource(location.href, referrer);
   cached = src;
   writeStorage(src);
   stripPalitraParam();

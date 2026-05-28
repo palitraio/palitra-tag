@@ -1,4 +1,5 @@
 import type { Logger } from "./logger.ts";
+import { ACTIVE_LOGGER } from "./logger.ts";
 import type { PixelEvent, PixelToken } from "./types.ts";
 import { MAX_PAYLOAD_BYTES } from "./types.ts";
 
@@ -30,11 +31,11 @@ export class Transport {
     const body = JSON.stringify(event);
     const size = encoder.encode(body).length;
     if (size > MAX_PAYLOAD_BYTES) {
-      this.config.logger.warn(`[palitra] dropped oversize event "${event.event}":`, size);
+      ACTIVE_LOGGER.warn(`[palitra] dropped oversize event "${event.event}":`, size);
       return;
     }
     if (this.pending.size >= MAX_PENDING) {
-      this.config.logger.warn(`[palitra] dropped event "${event.event}": pending queue full`);
+      ACTIVE_LOGGER.warn(`[palitra] dropped event "${event.event}": pending queue full`);
       return;
     }
     const entry: PendingEntry = { body, size, timer: null, abandoned: false };

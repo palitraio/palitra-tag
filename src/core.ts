@@ -61,7 +61,7 @@ export function createDispatcher(): (args: unknown[]) => void {
     initializing = true;
     const options: ResolvedOptions = { ...DEFAULT_OPTIONS, ...opts };
     const logger = createLogger(options.debug);
-    ensureSession(document.referrer, logger);
+    ensureSession(document.referrer);
     const result = await fetchConfig(options.endpoint, token, logger);
     if (result.kind === "stopped") {
       buffered = [];
@@ -117,7 +117,7 @@ export function createDispatcher(): (args: unknown[]) => void {
     props: Record<string, unknown> | undefined,
     current: State,
   ): Promise<void> {
-    ensureSession(document.referrer, current.logger);
+    ensureSession(document.referrer);
     const linked = collectLinkedIds(current.config);
     const referrer = document.referrer || undefined;
     const event: PixelEvent = {

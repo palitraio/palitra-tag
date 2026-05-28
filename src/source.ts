@@ -1,5 +1,3 @@
-import type { Logger } from "./logger.ts";
-import { NOOP_LOGGER } from "./logger.ts";
 import type { ResolvedSource, SourceFieldKey, SourceFields } from "./types.ts";
 import { getPalitraParam, parsePalitraLinker, parseUtm } from "./url.ts";
 
@@ -13,21 +11,17 @@ const UTM_TO_SOURCE_FIELD: Record<string, SourceFieldKey> = {
 
 const PLT_PREFIX = "plt||";
 
-export function resolveSource(
-  url: string,
-  referrer: string,
-  logger: Logger = NOOP_LOGGER,
-): ResolvedSource {
+export function resolveSource(url: string, referrer: string): ResolvedSource {
   const palitraParam = getPalitraParam(url);
   if (palitraParam) {
-    const fields = parsePalitraLinker(palitraParam, logger);
+    const fields = parsePalitraLinker(palitraParam);
     if (fields) return { kind: "linker", origin: "palitra", fields };
   }
 
   const utm = parseUtm(url);
 
   if (utm.utm_content && utm.utm_content.startsWith(PLT_PREFIX)) {
-    const fields = parsePalitraLinker(utm.utm_content.slice(PLT_PREFIX.length), logger);
+    const fields = parsePalitraLinker(utm.utm_content.slice(PLT_PREFIX.length));
     if (fields) return { kind: "linker", origin: "plt", fields };
   }
 

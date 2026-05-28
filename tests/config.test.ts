@@ -37,10 +37,10 @@ describe("fetchConfig", () => {
     }
   });
 
-  it("returns stopped on 401 (missing/unknown/archived token) and does not warn", async () => {
+  it("returns stopped on 401 (missing/unknown/archived token) and warns unconditionally", async () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 401 }));
     expect(await fetchConfig(ENDPOINT, TOKEN)).toEqual({ kind: "stopped", reason: "unauthorized" });
-    expect(warn).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("401"));
   });
 
   it("returns ready with empty entries on 2xx with empty identity_config", async () => {
