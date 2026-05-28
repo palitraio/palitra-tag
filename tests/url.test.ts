@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { createLogger } from "../src/logger.ts";
 import { parseUtm, getPalitraParam, parsePalitraLinker, stripPalitraParam } from "../src/url.ts";
 
 describe("parseUtm", () => {
@@ -95,14 +96,14 @@ describe("parsePalitraLinker", () => {
 
   it("warns on unknown version when debug=true", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(parsePalitraLinker("v2||yd||cpc", true)).toBeNull();
+    expect(parsePalitraLinker("v2||yd||cpc", createLogger(true))).toBeNull();
     expect(warn).toHaveBeenCalledWith("[palitra] unknown linker version:", "v2");
     warn.mockRestore();
   });
 
   it("returns null on empty or missing input without warning even with debug", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(parsePalitraLinker("", true)).toBeNull();
+    expect(parsePalitraLinker("", createLogger(true))).toBeNull();
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
   });
@@ -111,7 +112,7 @@ describe("parsePalitraLinker", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     expect(parsePalitraLinker("anything")).toBeNull();
     expect(warn).not.toHaveBeenCalled();
-    expect(parsePalitraLinker("anything", true)).toBeNull();
+    expect(parsePalitraLinker("anything", createLogger(true))).toBeNull();
     expect(warn).toHaveBeenCalledWith("[palitra] unknown linker version:", "anything");
     warn.mockRestore();
   });

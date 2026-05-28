@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { createLogger } from "../src/logger.ts";
 import { resolveSource } from "../src/source.ts";
 
 describe("resolveSource", () => {
@@ -109,7 +110,7 @@ describe("resolveSource — Palitra Linker", () => {
   it("warns on unknown linker version when debug=true", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const url = `https://shop.test/?palitra=${encodeURIComponent("v99||yd||cpc")}`;
-    resolveSource(url, "", true);
+    resolveSource(url, "", createLogger(true));
     expect(warn).toHaveBeenCalledWith("[palitra] unknown linker version:", "v99");
     warn.mockRestore();
   });

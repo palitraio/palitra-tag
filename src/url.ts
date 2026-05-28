@@ -1,3 +1,5 @@
+import type { Logger } from "./logger.ts";
+import { NOOP_LOGGER } from "./logger.ts";
 import type { SourceFields, SourceFieldKey } from "./types.ts";
 
 const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
@@ -47,13 +49,13 @@ const LINKER_POSITIONS: readonly SourceFieldKey[] = [
 
 export function parsePalitraLinker(
   value: string | null | undefined,
-  debug = false,
+  logger: Logger = NOOP_LOGGER,
 ): SourceFields | null {
   if (!value) return null;
   const segments = value.split("||");
   const version = segments[0];
   if (version !== "v1") {
-    if (debug) console.warn("[palitra] unknown linker version:", version);
+    logger.warn("[palitra] unknown linker version:", version);
     return null;
   }
   const fields: SourceFields = {};

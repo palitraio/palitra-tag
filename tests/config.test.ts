@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { createLogger } from "../src/logger.ts";
 import { fetchConfig } from "../src/config.ts";
 import type { PixelToken } from "../src/types.ts";
 
@@ -157,11 +158,11 @@ describe("fetchConfig", () => {
   it("logs malformed-entry detail only under debug", async () => {
     const body = envelope([{ id_type: "broken" }]);
     fetchMock.mockResolvedValueOnce(new Response(body, { status: 200 }));
-    await fetchConfig(ENDPOINT, TOKEN, false);
+    await fetchConfig(ENDPOINT, TOKEN, createLogger(false));
     expect(warn).not.toHaveBeenCalled();
 
     fetchMock.mockResolvedValueOnce(new Response(envelope([{ id_type: "broken" }]), { status: 200 }));
-    await fetchConfig(ENDPOINT, TOKEN, true);
+    await fetchConfig(ENDPOINT, TOKEN, createLogger(true));
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining("dropped malformed entry"),
       expect.anything(),

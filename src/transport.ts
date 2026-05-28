@@ -1,10 +1,11 @@
+import type { Logger } from "./logger.ts";
 import type { PixelEvent, PixelToken } from "./types.ts";
 import { MAX_PAYLOAD_BYTES } from "./types.ts";
 
 interface TransportConfig {
   endpoint: string;
   token: PixelToken;
-  debug: boolean;
+  logger: Logger;
 }
 
 interface PendingEntry {
@@ -29,13 +30,11 @@ export class Transport {
     const body = JSON.stringify(event);
     const size = encoder.encode(body).length;
     if (size > MAX_PAYLOAD_BYTES) {
-      console.warn(`[palitra] dropped oversize event "${event.event}":`, size);
+      this.config.logger.warn(`[palitra] dropped oversize event "${event.event}":`, size);
       return;
     }
     if (this.pending.size >= MAX_PENDING) {
-      if (this.config.debug) {
-        console.warn(`[palitra] dropped event "${event.event}": pending queue full`);
-      }
+      this.config.logger.warn(`[palitra] dropped event "${event.event}": pending queue full`);
       return;
     }
     const entry: PendingEntry = { body, size, timer: null, abandoned: false };
@@ -60,8 +59,8 @@ export class Transport {
       const queued = navigator.sendBeacon(url, blob);
       if (queued) {
         entry.abandoned = true;
-      } else if (this.config.debug) {
-        console.warn("[palitra] sendBeacon refused payload on unload");
+      } else {
+        this.config.logger.warn("[palitra] sendBeacon refused payload on unload");
       }
     }
   }
@@ -79,23 +78,17 @@ export class Transport {
         body: entry.body,
       });
     } catch (err) {
-      if (this.config.debug) {
-        console.warn("[palitra] /collect fetch failed:", err);
-      }
+      this.config.logger.warn("[palitra] /collect fetch failed:", err);
     }
 
     if (entry.abandoned) return;
     if (response && response.ok) return;
     if (response && response.status >= 400 && response.status < 500 && response.status !== 429) {
-      if (this.config.debug) {
-        console.warn(`[palitra] dropped event: ${response.status}`);
-      }
+      this.config.logger.warn(`[palitra] dropped event: ${response.status}`);
       return;
     }
     if (attempt >= MAX_ATTEMPTS) {
-      if (this.config.debug) {
-        console.warn(`[palitra] gave up after ${MAX_ATTEMPTS} attempts`);
-      }
+      this.config.logger.warn(`[palitra] gave up after ${MAX_ATTEMPTS} attempts`);
       return;
     }
 
