@@ -118,10 +118,10 @@ export function createDispatcher(): (args: unknown[]) => void {
     props: Record<string, unknown> | undefined,
     current: State,
   ): Promise<void> {
-    ensureSession(document.referrer)
-    const linked = collectLinkedIds(current.config)
-    const referrer = document.referrer || undefined
-    const { fields, items, properties } = splitEventPayload(props)
+    ensureSession(document.referrer);
+    const linked = collectLinkedIds(current.config);
+    const referrer = document.referrer || undefined;
+    const { fields, items, properties } = splitEventPayload(props);
     const event: PixelEvent = {
       event: name,
       url: location.href,
@@ -131,8 +131,8 @@ export function createDispatcher(): (args: unknown[]) => void {
       ...fields,
       ...(items !== undefined ? { items } : {}),
       ...(properties !== undefined ? { properties } : {}),
-    }
-    return current.transport.send(event)
+    };
+    return current.transport.send(event);
   }
 
   return handle;
