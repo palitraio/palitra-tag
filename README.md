@@ -32,7 +32,21 @@ Paste before `</head>` on every page you want to track. Replace `ptok_YOUR_PUBLI
 ```js
 palitra('identify', 'user-id');               // link anonymous sessions to a real user
 palitra('link', 'ga4_client_id', 'value');    // attach external analytics IDs
-palitra('event', 'purchase', { value: 5900, currency: 'RUB' });  // page_view is automatic
+palitra('event', 'page_view');                // page_view is also sent automatically
+
+// GA4-shaped ecommerce event: known fields and items[] are sent as
+// structured top-level data; any other keys ride along in properties.
+palitra('event', 'purchase', {
+  value: 5900,
+  currency: 'RUB',
+  transaction_id: 'ord-7788',
+  coupon: 'SUMMER',
+  shipping: 0,
+  tax: 983,
+  items: [
+    { item_id: 'sku-1', item_name: 'Sneakers', price: 5900, quantity: 1, item_brand: 'Acme' }
+  ]
+});
 ```
 
 ## Authentication

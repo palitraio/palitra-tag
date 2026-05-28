@@ -15,7 +15,12 @@
     })(window,document,'palitra');
     palitra('init','ptok_local_dev', { endpoint: 'http://localhost:8000/api/v1/pixel', debug: true });
     document.getElementById('track').addEventListener('click', function () {
-      palitra('event','purchase', { value: 5900, currency: 'RUB' });
+      palitra('event','purchase', {
+        value: 5900,
+        currency: 'RUB',
+        transaction_id: 'ord-7788',
+        items: [{ item_id: 'sku-1', item_name: 'Sneakers', price: 5900, quantity: 1 }]
+      });
     });
   </script>
 </body>
