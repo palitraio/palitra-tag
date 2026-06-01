@@ -15,8 +15,8 @@ importers:
         specifier: 0.25.0
         version: 0.25.0
       happy-dom:
-        specifier: 15.11.0
-        version: 15.11.0
+        specifier: 20.8.9
+        version: 20.8.9
       oxfmt:
         specifier: 0.1.0
         version: 0.1.0
@@ -28,7 +28,7 @@ importers:
         version: 5.6.3
       vitest:
         specifier: 2.1.9
-        version: 2.1.9(@types/node@22.9.0)(happy-dom@15.11.0)
+        version: 2.1.9(@types/node@22.9.0)(happy-dom@20.8.9)
 
 packages:
 
@@ -534,6 +534,12 @@ packages:
   '@types/node@22.9.0':
     resolution: {integrity: sha512-vuyHg81vvWA1Z1ELfvLko2c8f34gyA0zaic0+Rllc5lbCnbSyuvb2Oxpm6TAUAC/2xZN3QGqxBNggD1nNR2AfQ==}
 
+  '@types/whatwg-mimetype@3.0.2':
+    resolution: {integrity: sha512-c2AKvDT8ToxLIOUlN51gTiHXflsfIFisS4pO7pDPoKouJCESkhZnEy623gwP9laCy5lnLDAw1vAzu2vM2YLOrA==}
+
+  '@types/ws@8.18.1':
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
+
   '@vitest/expect@2.1.9':
     resolution: {integrity: sha512-UJCIkTBenHeKT1TTlKMJWy1laZewsRIzYighyYiJKZreqtdxSos/S1t+ktRMQWu2CKqaarrkeszJx1cgC5tGZw==}
 
@@ -592,8 +598,8 @@ packages:
     resolution: {integrity: sha512-h5k/5U50IJJFpzfL6nO9jaaumfjO/f2NjK/oYB2Djzm4p9L+3T9qWpZqZ2hAbLPuuYq9wrU08WQyBTL5GbPk5Q==}
     engines: {node: '>=6'}
 
-  entities@4.5.0:
-    resolution: {integrity: sha512-V0hjH4dGPh9Ao5p0MoRY6BVqtwCjhz6vI5LT8AJ55H+4g9/4vbHx1I54fS0XuclLhDHArPQCiMjDxjaL8fPxhw==}
+  entities@7.0.1:
+    resolution: {integrity: sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==}
     engines: {node: '>=0.12'}
 
   es-module-lexer@1.7.0:
@@ -621,9 +627,9 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
-  happy-dom@15.11.0:
-    resolution: {integrity: sha512-/zyxHbXriYJ8b9Urh43ILk/jd9tC07djURnJuAimJ3tJCOLOzOUp7dEHDwJOZyzROlrrooUhr/0INZIDBj1Bjw==}
-    engines: {node: '>=18.0.0'}
+  happy-dom@20.8.9:
+    resolution: {integrity: sha512-Tz23LR9T9jOGVZm2x1EPdXqwA37G/owYMxRwU0E4miurAtFsPMQ1d2Jc2okUaSjZqAFz2oEn3FLXC5a0a+siyA==}
+    engines: {node: '>=20.0.0'}
 
   loupe@3.2.1:
     resolution: {integrity: sha512-CdzqowRJCeLU72bHvWqwRBBlLcMEtIvGrlvef74kMnV2AolS9Y8xUv1I0U/MNAWMhBlKIoyuEgoJ0t/bbwHbLQ==}
@@ -768,10 +774,6 @@ packages:
       jsdom:
         optional: true
 
-  webidl-conversions@7.0.0:
-    resolution: {integrity: sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g==}
-    engines: {node: '>=12'}
-
   whatwg-mimetype@3.0.0:
     resolution: {integrity: sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==}
     engines: {node: '>=12'}
@@ -780,6 +782,18 @@ packages:
     resolution: {integrity: sha512-hUrmaWBdVDcxvYqnyh09zunKzROWjbZTiNy8dBEjkS7ehEDQibXJ7XvlmtbwuTclUiIyN+CyXQD4Vmko8fNm8w==}
     engines: {node: '>=8'}
     hasBin: true
+
+  ws@8.21.0:
+    resolution: {integrity: sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
 
 snapshots:
 
@@ -1058,6 +1072,12 @@ snapshots:
     dependencies:
       undici-types: 6.19.8
 
+  '@types/whatwg-mimetype@3.0.2': {}
+
+  '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 22.9.0
+
   '@vitest/expect@2.1.9':
     dependencies:
       '@vitest/spy': 2.1.9
@@ -1118,7 +1138,7 @@ snapshots:
 
   deep-eql@5.0.2: {}
 
-  entities@4.5.0: {}
+  entities@7.0.1: {}
 
   es-module-lexer@1.7.0: {}
 
@@ -1185,11 +1205,17 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  happy-dom@15.11.0:
+  happy-dom@20.8.9:
     dependencies:
-      entities: 4.5.0
-      webidl-conversions: 7.0.0
+      '@types/node': 22.9.0
+      '@types/whatwg-mimetype': 3.0.2
+      '@types/ws': 8.18.1
+      entities: 7.0.1
       whatwg-mimetype: 3.0.0
+      ws: 8.21.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
 
   loupe@3.2.1: {}
 
@@ -1315,7 +1341,7 @@ snapshots:
       '@types/node': 22.9.0
       fsevents: 2.3.3
 
-  vitest@2.1.9(@types/node@22.9.0)(happy-dom@15.11.0):
+  vitest@2.1.9(@types/node@22.9.0)(happy-dom@20.8.9):
     dependencies:
       '@vitest/expect': 2.1.9
       '@vitest/mocker': 2.1.9(vite@5.4.21(@types/node@22.9.0))
@@ -1339,7 +1365,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 22.9.0
-      happy-dom: 15.11.0
+      happy-dom: 20.8.9
     transitivePeerDependencies:
       - less
       - lightningcss
@@ -1351,11 +1377,11 @@ snapshots:
       - supports-color
       - terser
 
-  webidl-conversions@7.0.0: {}
-
   whatwg-mimetype@3.0.0: {}
 
   why-is-node-running@2.3.0:
     dependencies:
       siginfo: 2.0.0
       stackback: 0.0.2
+
+  ws@8.21.0: {}
