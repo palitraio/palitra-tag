@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "@types/node": "22.9.0",
-    "esbuild": "0.24.0",
+    "esbuild": "0.25.0",
     "happy-dom": "15.11.0",
     "oxfmt": "0.1.0",
     "oxlint": "0.13.0",
