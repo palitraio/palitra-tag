@@ -1,3 +1,5 @@
+import { scriptOrigin } from "./script-origin.ts";
+
 declare const __brand: unique symbol;
 type Brand<T, B> = T & { readonly [__brand]: B };
 
@@ -170,11 +172,22 @@ export interface ResolvedOptions {
   debug: boolean;
 }
 
-export const DEFAULT_OPTIONS: ResolvedOptions = {
-  endpoint: "https://api.palitra.io/api/v1/pixel",
-  autoPageView: true,
-  debug: false,
-};
+/**
+ * Fill in what `palitra('init', token, options)` left out.
+ *
+ * The endpoint default is derived rather than constant: one hard-coded host cannot serve
+ * installations that each run their own ingest, and the tag already knows where it came from.
+ * An installation that serves the tag from a different host than its API passes `endpoint`
+ * explicitly, and that always wins.
+ */
+export function resolveOptions(opts: InitOptions): ResolvedOptions {
+  const explicit = typeof opts.endpoint === "string" ? opts.endpoint : "";
+  return {
+    endpoint: explicit || `${scriptOrigin()}/api/v1/pixel`,
+    autoPageView: opts.autoPageView ?? true,
+    debug: opts.debug ?? false,
+  };
+}
 
 export type Command =
   | { t: "init"; token: PixelToken; options: InitOptions }

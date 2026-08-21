@@ -1,4 +1,5 @@
 import { createDispatcher } from "./core.ts";
+import { captureScriptOrigin } from "./script-origin.ts";
 
 interface PalitraGlobal {
   (...args: unknown[]): void;
@@ -6,6 +7,9 @@ interface PalitraGlobal {
 }
 
 (function bootstrap(): void {
+  // Must run during script evaluation: document.currentScript is null afterwards.
+  captureScriptOrigin();
+
   const w = window as unknown as Record<string, unknown>;
   const name =
     typeof w["PalitraObject"] === "string"

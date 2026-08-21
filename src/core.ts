@@ -16,7 +16,7 @@ import type {
   PixelToken,
   ResolvedOptions,
 } from "./types.ts";
-import { DEFAULT_OPTIONS } from "./types.ts";
+import { resolveOptions } from "./types.ts";
 
 interface State {
   options: ResolvedOptions;
@@ -60,7 +60,7 @@ export function createDispatcher(): (args: unknown[]) => void {
 
   async function runInit(token: PixelToken, opts: InitOptions): Promise<void> {
     initializing = true;
-    const options: ResolvedOptions = { ...DEFAULT_OPTIONS, ...opts };
+    const options: ResolvedOptions = resolveOptions(opts);
     const logger = createLogger(options.debug);
     ensureSession(document.referrer);
     const result = await fetchConfig(options.endpoint, token, logger);
