@@ -14,18 +14,26 @@ Client-side script that collects browser events for the Palitra platform. Also k
 
 ## Install
 
-Paste before `</head>` on every page you want to track. Replace `ptok_YOUR_PUBLIC_TOKEN` with the token from your project settings.
+Paste before `</head>` on every page you want to track. Both URLs come from your project's
+install screen: the tag is served by your own installation, so there is no shared address.
+Replace `ptok_YOUR_PUBLIC_TOKEN` with the token from the same screen.
 
 ```html
 <script>
   (function(w,d,s){
     w.PalitraObject=s;w[s]=w[s]||function(){(w[s].q=w[s].q||[]).push(arguments)};
-    var e=d.createElement('script');e.async=1;e.src='https://cdn.palitra.io/palitra.js';
+    var e=d.createElement('script');e.async=1;e.src='https://tag.example.com/palitra.js';
     d.head.appendChild(e);
   })(window,document,'palitra');
-  palitra('init','ptok_YOUR_PUBLIC_TOKEN');
+  palitra('init','ptok_YOUR_PUBLIC_TOKEN',{endpoint:'https://app.example.com/api/v1/pixel'});
 </script>
 ```
+
+`endpoint` may be omitted when the tag and the API share a host — it then defaults to the
+origin the script itself was loaded from.
+
+Each installation publishes `dist/palitra.js` wherever it wants to serve it from; this
+repository builds the file and does not deploy it anywhere.
 
 ### API
 
