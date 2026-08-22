@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/palitraio/palitra-tag/compare/v1.3.0...v1.4.0) (2026-08-22)
+
+
+### Features
+
+* serve the tag from a per-installation host ([#14](https://github.com/palitraio/palitra-tag/issues/14)) ([d8f470c](https://github.com/palitraio/palitra-tag/commit/d8f470c655322b71c0e0c7af6981cdcb4851b4da))
+
 ## [1.3.0](https://github.com/palitraio/palitra-tag/compare/v1.2.1...v1.3.0) (2026-05-28)
 
 
