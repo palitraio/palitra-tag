@@ -1,9 +1,12 @@
+import { withoutPalitraParam } from "./url.ts";
+
 export function installPageViewHooks(onPageView: () => void): () => void {
-  let lastHref = location.href;
+  let lastHref = withoutPalitraParam(location.href);
 
   const fireIfChanged = (): void => {
-    if (location.href !== lastHref) {
-      lastHref = location.href;
+    const href = withoutPalitraParam(location.href);
+    if (href !== lastHref) {
+      lastHref = href;
       onPageView();
     }
   };

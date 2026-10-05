@@ -1,5 +1,5 @@
 import { resolveSource } from "./source.ts";
-import { stripPalitraParam } from "./url.ts";
+import { schedulePalitraStrip } from "./url.ts";
 import type { ResolvedSource, SourceFields } from "./types.ts";
 import { RESOLVED_SOURCE_KINDS, toSourceFields } from "./types.ts";
 
@@ -18,7 +18,7 @@ export function ensureSession(referrer: string): void {
   const src = resolveSource(location.href, referrer);
   cached = src;
   writeStorage(src);
-  stripPalitraParam();
+  schedulePalitraStrip();
 }
 
 export function getSourceFields(): SourceFields {

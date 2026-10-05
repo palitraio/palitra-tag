@@ -193,4 +193,45 @@ describe("createDispatcher", () => {
     expect(pv).toBeTruthy();
     expect(pv.url).toContain("/new-page");
   });
+
+  it("reports the URL without palitra= and the deferred strip is no page_view", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      history.replaceState(null, "", "/landing?palitra=v1||yd||cpc&keep=1");
+      vi.resetModules();
+      const core = await import("../src/core.ts");
+      const { PALITRA_STRIP_DELAY_MS } = await import("../src/url.ts");
+      await vi.advanceTimersByTimeAsync(0);
+      // page_view hooks left installed by earlier tests react to the URL change
+      // above; start this landing from a clean session and a clean fetch log.
+      sessionStorage.clear();
+      fetchMock.mockClear();
+      fetchMock.mockImplementation((url: string) =>
+        Promise.resolve(
+          String(url).includes("/config")
+            ? new Response(JSON.stringify({ data: { identity_config: [] } }), { status: 200 })
+            : new Response(null, { status: 202 }),
+        ),
+      );
+      core.createDispatcher()(["init", TOKEN]);
+      await vi.advanceTimersByTimeAsync(0);
+      const pageViews = (): Array<{ url: string; source?: string }> =>
+        fetchMock.mock.calls
+          .map((c) => JSON.parse(String(c[1]?.body ?? "null")))
+          .filter((b) => b?.event === "page_view");
+
+      expect(location.search).toBe("?palitra=v1||yd||cpc&keep=1");
+      expect(pageViews()).toHaveLength(1);
+      expect(pageViews()[0]).toMatchObject({
+        url: `${location.origin}/landing?keep=1`,
+        source: "yd",
+      });
+
+      await vi.advanceTimersByTimeAsync(PALITRA_STRIP_DELAY_MS);
+      expect(location.search).toBe("?keep=1");
+      expect(pageViews()).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

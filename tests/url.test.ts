@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { parseUtm, getPalitraParam, parsePalitraLinker, stripPalitraParam } from "../src/url.ts";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { parseUtm, getPalitraParam, parsePalitraLinker, withoutPalitraParam } from "../src/url.ts";
 
 describe("parseUtm", () => {
   it("extracts utm_source, utm_medium, utm_campaign, utm_content, utm_term", () => {
@@ -148,29 +148,113 @@ describe("parsePalitraLinker", () => {
   });
 });
 
-describe("stripPalitraParam", () => {
-  beforeEach(() => {
+describe("withoutPalitraParam", () => {
+  it("drops palitra= and keeps the other params and the hash", () => {
+    expect(withoutPalitraParam("https://x.test/page?palitra=abc&foo=bar#top")).toBe(
+      "https://x.test/page?foo=bar#top",
+    );
+  });
+
+  it("drops the trailing question mark when palitra was the only param", () => {
+    expect(withoutPalitraParam("https://x.test/page?palitra=abc")).toBe("https://x.test/page");
+  });
+
+  it("returns the URL untouched when palitra= is absent or the URL is unparseable", () => {
+    expect(withoutPalitraParam("https://x.test/page?a=b%20c")).toBe("https://x.test/page?a=b%20c");
+    expect(withoutPalitraParam("not a url")).toBe("not a url");
+  });
+});
+
+describe("schedulePalitraStrip", () => {
+  let url: typeof import("../src/url.ts");
+  const path = (): string => location.pathname + location.search + location.hash;
+
+  beforeEach(async () => {
+    vi.useFakeTimers();
     history.replaceState(null, "", "/");
+    vi.resetModules();
+    url = await import("../src/url.ts");
   });
 
-  it("removes palitra= and calls history.replaceState", () => {
-    history.replaceState(null, "", "/page?palitra=abc&foo=bar");
-    const spy = vi.spyOn(history, "replaceState");
-    stripPalitraParam();
-    expect(spy).toHaveBeenCalledTimes(1);
-    expect(location.search).toBe("?foo=bar");
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
-  it("removes trailing question mark when palitra was the only param", () => {
+  it("keeps palitra= in the address bar until the delay after load has elapsed", () => {
+    history.replaceState({ route: 1 }, "", "/page?palitra=abc&foo=bar#sec");
+    url.schedulePalitraStrip();
+    vi.advanceTimersByTime(url.PALITRA_STRIP_DELAY_MS - 1);
+    expect(path()).toBe("/page?palitra=abc&foo=bar#sec");
+    vi.advanceTimersByTime(1);
+    expect(path()).toBe("/page?foo=bar#sec");
+    expect(history.state).toEqual({ route: 1 });
+  });
+
+  it("starts the delay only once the page has finished loading", () => {
+    Object.defineProperty(document, "readyState", { configurable: true, value: "interactive" });
     history.replaceState(null, "", "/page?palitra=abc");
-    stripPalitraParam();
-    expect(location.pathname + location.search).toBe("/page");
+    try {
+      url.schedulePalitraStrip();
+    } finally {
+      Reflect.deleteProperty(document, "readyState");
+    }
+    vi.advanceTimersByTime(url.PALITRA_STRIP_DELAY_MS * 10);
+    expect(path()).toBe("/page?palitra=abc");
+    window.dispatchEvent(new Event("load"));
+    vi.advanceTimersByTime(url.PALITRA_STRIP_DELAY_MS - 1);
+    expect(path()).toBe("/page?palitra=abc");
+    vi.advanceTimersByTime(1);
+    expect(path()).toBe("/page");
   });
 
-  it("is a no-op when palitra= is absent", () => {
+  it("leaves the URL and state alone when an SPA navigated away from palitra= first", () => {
+    history.replaceState(null, "", "/landing?palitra=abc");
+    url.schedulePalitraStrip();
+    history.pushState({ route: "cart" }, "", "/cart?step=2");
+    const replace = vi.spyOn(history, "replaceState");
+    vi.advanceTimersByTime(url.PALITRA_STRIP_DELAY_MS);
+    expect(replace).not.toHaveBeenCalled();
+    expect(path()).toBe("/cart?step=2");
+    expect(history.state).toEqual({ route: "cart" });
+  });
+
+  it("strips the current URL, not the landing one, when an SPA kept palitra= on navigation", () => {
+    history.replaceState({ route: "landing" }, "", "/landing?palitra=abc");
+    url.schedulePalitraStrip();
+    history.pushState({ route: "cart" }, "", "/cart?palitra=abc&step=2");
+    vi.advanceTimersByTime(url.PALITRA_STRIP_DELAY_MS);
+    expect(path()).toBe("/cart?step=2");
+    expect(history.state).toEqual({ route: "cart" });
+  });
+
+  it("strips at most once per page load", () => {
+    history.replaceState(null, "", "/page?palitra=abc");
+    url.schedulePalitraStrip();
+    url.schedulePalitraStrip();
+    vi.advanceTimersByTime(url.PALITRA_STRIP_DELAY_MS);
+    expect(path()).toBe("/page");
+    history.pushState(null, "", "/next?palitra=again");
+    url.schedulePalitraStrip();
+    vi.advanceTimersByTime(url.PALITRA_STRIP_DELAY_MS);
+    expect(path()).toBe("/next?palitra=again");
+  });
+
+  it("never touches history when palitra= is absent", () => {
     history.replaceState(null, "", "/page?foo=bar");
-    const spy = vi.spyOn(history, "replaceState");
-    stripPalitraParam();
-    expect(spy).not.toHaveBeenCalled();
+    const replace = vi.spyOn(history, "replaceState");
+    url.schedulePalitraStrip();
+    vi.advanceTimersByTime(url.PALITRA_STRIP_DELAY_MS);
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("leaves the URL as-is when history.replaceState throws (sandboxed iframe)", () => {
+    history.replaceState(null, "", "/page?palitra=abc");
+    vi.spyOn(history, "replaceState").mockImplementation(() => {
+      throw new DOMException("sandboxed", "SecurityError");
+    });
+    url.schedulePalitraStrip();
+    expect(() => vi.advanceTimersByTime(url.PALITRA_STRIP_DELAY_MS)).not.toThrow();
+    expect(path()).toBe("/page?palitra=abc");
   });
 });
