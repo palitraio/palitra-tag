@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/palitraio/palitra-tag/compare/v1.4.0...v1.4.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* defer the Linker strip until third-party counters have read the URL ([#16](https://github.com/palitraio/palitra-tag/issues/16)) ([56955f1](https://github.com/palitraio/palitra-tag/commit/56955f1172e62b9481f0f303ab4f8fc417516f21))
+
 ## [1.4.0](https://github.com/palitraio/palitra-tag/compare/v1.3.0...v1.4.0) (2026-08-22)
 
 
