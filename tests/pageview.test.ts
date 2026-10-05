@@ -35,6 +35,12 @@ describe("installPageViewHooks", () => {
     expect(onPageView).not.toHaveBeenCalled();
   });
 
+  it("does not fire when only the palitra= param changes", () => {
+    history.replaceState(null, "", "/start?palitra=abc");
+    history.replaceState(null, "", "/start");
+    expect(onPageView).not.toHaveBeenCalled();
+  });
+
   it("uninstall restores original pushState and replaceState", () => {
     uninstall();
     history.pushState(null, "", "/x");

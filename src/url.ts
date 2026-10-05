@@ -73,14 +73,33 @@ export function parsePalitraLinker(value: string | null | undefined): SourceFiel
   return fields;
 }
 
-export function stripPalitraParam(): void {
-  const url = safeParse(location.href);
-  if (!url || !url.searchParams.has("palitra")) return;
+// The address bar keeps `palitra=` until third-party counters (Yandex Metrika,
+// call tracking, …) have read the landing URL: they initialise from async
+// scripts, often injected by a tag manager on `load`.
+export const PALITRA_STRIP_DELAY_MS = 3000;
+
+let stripScheduled = false;
+
+export function withoutPalitraParam(href: string): string {
+  const url = safeParse(href);
+  if (!url || !url.searchParams.has("palitra")) return href;
   url.searchParams.delete("palitra");
-  const next =
-    url.pathname +
-    (url.searchParams.toString() ? `?${url.searchParams.toString()}` : "") +
-    url.hash;
+  return url.href;
+}
+
+export function schedulePalitraStrip(): void {
+  if (stripScheduled || withoutPalitraParam(location.href) === location.href) return;
+  stripScheduled = true;
+  const startDelay = (): void => {
+    setTimeout(stripPalitraParam, PALITRA_STRIP_DELAY_MS);
+  };
+  if (document.readyState === "complete") startDelay();
+  else window.addEventListener("load", startDelay, { once: true });
+}
+
+function stripPalitraParam(): void {
+  const next = withoutPalitraParam(location.href);
+  if (next === location.href) return;
   try {
     history.replaceState(history.state, "", next);
   } catch {

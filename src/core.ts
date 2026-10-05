@@ -17,6 +17,7 @@ import type {
   ResolvedOptions,
 } from "./types.ts";
 import { resolveOptions } from "./types.ts";
+import { withoutPalitraParam } from "./url.ts";
 
 interface State {
   options: ResolvedOptions;
@@ -127,7 +128,7 @@ export function createDispatcher(): (args: unknown[]) => void {
     }
     const event: PixelEvent = {
       event: name,
-      url: location.href,
+      url: withoutPalitraParam(location.href),
       ...(referrer !== undefined ? { referrer } : {}),
       ...getSourceFields(),
       ...(linked.length > 0 ? { linked_ids: linked } : {}),

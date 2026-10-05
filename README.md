@@ -6,7 +6,7 @@ Client-side script that collects browser events for the Palitra platform. Also k
 
 - Sends browser events (`page_view`, `purchase`, etc.) to `POST /api/v1/pixel/collect`.
 - Resolves traffic source on the client side before sending. Priority: `palitra` URL parameter → `plt||` prefix in `utm_content` → plain UTM parameters → `document.referrer` → direct.
-- After capturing the `palitra=` parameter, strips it from the address bar via `history.replaceState`.
+- After capturing the `palitra=` parameter, strips it from the address bar via `history.replaceState` — 3 seconds after the page `load` event, so other counters on the page (e.g. Yandex Metrika, call tracking) still read the original landing URL. Event payloads report the page URL without `palitra=`.
 - Source fields are fixed at the session entry point and inherited by every subsequent event in the session.
 - Fetches project configuration from `GET /api/v1/pixel/config` (cookie/localStorage keys from connected analytics connectors).
 - Automatically reads user identifiers from cookies/localStorage and sends them as `linked_ids`.

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { ensureSession, getSourceFields, SESSION_KEY } from "../src/session.ts";
+import { PALITRA_STRIP_DELAY_MS } from "../src/url.ts";
 
 describe("ensureSession", () => {
   beforeEach(() => {
@@ -25,10 +26,15 @@ describe("ensureSession", () => {
     expect(getSourceFields()).toEqual({ source: "google" });
   });
 
-  it("strips palitra= from the URL after capturing it", () => {
+  it("captures palitra= at once and strips it from the URL only after the delay", () => {
+    vi.useFakeTimers();
     const linker = "v1||yd||cpc||c-1||g-1||a-1";
-    history.replaceState(null, "", `/page?palitra=${encodeURIComponent(linker)}&keep=1`);
+    const landing = `/page?palitra=${encodeURIComponent(linker)}&keep=1`;
+    history.replaceState(null, "", landing);
     ensureSession("");
+    expect(location.pathname + location.search).toBe(landing);
+    vi.advanceTimersByTime(PALITRA_STRIP_DELAY_MS);
+    vi.useRealTimers();
     expect(location.pathname + location.search).toBe("/page?keep=1");
     expect(getSourceFields()).toEqual({
       source: "yd",
